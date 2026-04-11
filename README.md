@@ -170,8 +170,23 @@ A VS Code extension is included in `editors/vscode/`.
 
 ## Installation
 
+### npm (recommended)
+
 ```sh
-# From source
+npm install elm-assist
+```
+
+Downloads the correct pre-built binary for your platform automatically.
+
+### Binary downloads
+
+Pre-built binaries for macOS (x64/ARM64), Linux (x64/ARM64), and Windows (x64) are available on the [GitHub Releases](https://github.com/joshburgess/elm-assist/releases) page.
+
+### From source
+
+```sh
+git clone https://github.com/joshburgess/elm-assist.git
+cd elm-assist
 cargo install --path crates/elm-lint
 cargo install --path crates/elm-unused
 cargo install --path crates/elm-deps
