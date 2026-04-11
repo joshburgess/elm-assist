@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "crates/elm-lint",
-    "crates/elm-lsp",
+    "crates/elm-assist-lsp",
     "crates/elm-deps",
     "crates/elm-unused",
     "crates/elm-refactor",

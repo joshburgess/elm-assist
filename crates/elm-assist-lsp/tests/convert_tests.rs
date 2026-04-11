@@ -4,7 +4,7 @@ use elm_ast::parse::ParseError;
 use elm_ast::span::{Position, Span};
 use elm_lint::rule::{Edit, Fix, LintError, Severity};
 
-use elm_lsp::convert;
+use elm_assist_lsp::convert;
 
 fn span(start_line: u32, start_col: u32, end_line: u32, end_col: u32) -> Span {
     Span {

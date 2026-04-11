@@ -20,7 +20,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
   if (!serverPath) {
     window.showWarningMessage(
-      "elm-lsp binary not found. Install it or set elm-lint.serverPath in settings."
+      "elm-assist-lsp binary not found. Install it or set elm-lint.serverPath in settings."
     );
     return;
   }
@@ -75,7 +75,7 @@ function findServerPath(configPath: string): string | undefined {
         folder.uri.fsPath,
         "node_modules",
         ".bin",
-        "elm-lsp"
+        "elm-assist-lsp"
       );
       try {
         require("fs").accessSync(localPath, require("fs").constants.X_OK);
@@ -87,5 +87,5 @@ function findServerPath(configPath: string): string | undefined {
   }
 
   // 3. Fall back to PATH.
-  return "elm-lsp";
+  return "elm-assist-lsp";
 }

@@ -1,13 +1,13 @@
 {
   "name": "elm-lint",
   "displayName": "Elm Lint",
-  "description": "Elm linting with real-time diagnostics and auto-fix code actions, powered by elm-lsp",
+  "description": "Elm linting with real-time diagnostics and auto-fix code actions, powered by elm-assist-lsp",
   "version": "0.1.0",
   "publisher": "joshburgess",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/joshburgess/elm-ast-rs"
+    "url": "https://github.com/joshburgess/elm-assist"
   },
   "engines": {
     "vscode": "^1.75.0"
@@ -27,7 +27,7 @@
         "elm-lint.serverPath": {
           "type": "string",
           "default": "",
-          "description": "Path to the elm-lsp binary. If empty, searches PATH."
+          "description": "Path to the elm-assist-lsp binary. If empty, searches PATH."
         },
         "elm-lint.enable": {
           "type": "boolean",

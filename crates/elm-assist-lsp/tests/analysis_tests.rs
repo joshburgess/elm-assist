@@ -6,8 +6,8 @@ use tower_lsp::lsp_types::Url;
 use elm_lint::config::Config;
 use elm_lint::rules;
 
-use elm_lsp::analysis;
-use elm_lsp::state::ServerState;
+use elm_assist_lsp::analysis;
+use elm_assist_lsp::state::ServerState;
 
 fn make_state() -> ServerState {
     let all_rules = rules::all_rules();
@@ -16,7 +16,7 @@ fn make_state() -> ServerState {
         .map(|r| {
             (
                 r.name().to_string(),
-                elm_lsp::state::RuleInfo {
+                elm_assist_lsp::state::RuleInfo {
                     description: r.description(),
                     fixable: false,
                 },

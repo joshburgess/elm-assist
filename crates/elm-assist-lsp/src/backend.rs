@@ -118,7 +118,7 @@ impl LanguageServer for Backend {
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
-                name: "elm-lsp".into(),
+                name: "elm-assist-lsp".into(),
                 version: Some(env!("CARGO_PKG_VERSION").into()),
             }),
         })
@@ -126,7 +126,7 @@ impl LanguageServer for Backend {
 
     async fn initialized(&self, _: InitializedParams) {
         self.client
-            .log_message(MessageType::INFO, "elm-lsp initialized")
+            .log_message(MessageType::INFO, "elm-assist-lsp initialized")
             .await;
 
         // Register file watchers for .elm files and config.
@@ -343,7 +343,7 @@ impl LanguageServer for Backend {
         self.lint_all_and_publish().await;
 
         self.client
-            .log_message(MessageType::INFO, "elm-lsp: configuration reloaded")
+            .log_message(MessageType::INFO, "elm-assist-lsp: configuration reloaded")
             .await;
     }
 

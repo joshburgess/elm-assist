@@ -1,5 +1,5 @@
 [package]
-name = "elm-lsp"
+name = "elm-assist-lsp"
 version = "0.1.0"
 edition = "2024"
 description = "Language Server Protocol server for Elm linting"
