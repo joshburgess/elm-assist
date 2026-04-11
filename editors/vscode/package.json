@@ -1,0 +1,54 @@
+{
+  "name": "elm-lint",
+  "displayName": "Elm Lint",
+  "description": "Elm linting with real-time diagnostics and auto-fix code actions, powered by elm-lsp",
+  "version": "0.1.0",
+  "publisher": "joshburgess",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joshburgess/elm-ast-rs"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:elm"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Elm Lint",
+      "properties": {
+        "elm-lint.serverPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the elm-lsp binary. If empty, searches PATH."
+        },
+        "elm-lint.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable the Elm Lint language server."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npx @vscode/vsce package"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}

@@ -1,0 +1,150 @@
+[submodule "test-fixtures/core"]
+	path = test-fixtures/core
+	url = https://github.com/elm/core.git
+[submodule "test-fixtures/html"]
+	path = test-fixtures/html
+	url = https://github.com/elm/html.git
+[submodule "test-fixtures/browser"]
+	path = test-fixtures/browser
+	url = https://github.com/elm/browser.git
+[submodule "test-fixtures/json"]
+	path = test-fixtures/json
+	url = https://github.com/elm/json.git
+[submodule "test-fixtures/http"]
+	path = test-fixtures/http
+	url = https://github.com/elm/http.git
+[submodule "test-fixtures/url"]
+	path = test-fixtures/url
+	url = https://github.com/elm/url.git
+[submodule "test-fixtures/parser"]
+	path = test-fixtures/parser
+	url = https://github.com/elm/parser.git
+[submodule "test-fixtures/virtual-dom"]
+	path = test-fixtures/virtual-dom
+	url = https://github.com/elm/virtual-dom.git
+[submodule "test-fixtures/bytes"]
+	path = test-fixtures/bytes
+	url = https://github.com/elm/bytes.git
+[submodule "test-fixtures/file"]
+	path = test-fixtures/file
+	url = https://github.com/elm/file.git
+[submodule "test-fixtures/time"]
+	path = test-fixtures/time
+	url = https://github.com/elm/time.git
+[submodule "test-fixtures/regex"]
+	path = test-fixtures/regex
+	url = https://github.com/elm/regex.git
+[submodule "test-fixtures/random"]
+	path = test-fixtures/random
+	url = https://github.com/elm/random.git
+[submodule "test-fixtures/elm-css"]
+	path = test-fixtures/elm-css
+	url = https://github.com/rtfeldman/elm-css.git
+[submodule "test-fixtures/elm-ui"]
+	path = test-fixtures/elm-ui
+	url = https://github.com/mdgriffith/elm-ui.git
+[submodule "test-fixtures/svg"]
+	path = test-fixtures/svg
+	url = https://github.com/elm/svg.git
+[submodule "test-fixtures/compiler"]
+	path = test-fixtures/compiler
+	url = https://github.com/elm/compiler.git
+[submodule "test-fixtures/test"]
+	path = test-fixtures/test
+	url = https://github.com/elm-explorations/test.git
+[submodule "test-fixtures/markdown"]
+	path = test-fixtures/markdown
+	url = https://github.com/elm-explorations/markdown.git
+[submodule "test-fixtures/list-extra"]
+	path = test-fixtures/list-extra
+	url = https://github.com/elm-community/list-extra.git
+[submodule "test-fixtures/maybe-extra"]
+	path = test-fixtures/maybe-extra
+	url = https://github.com/elm-community/maybe-extra.git
+[submodule "test-fixtures/string-extra"]
+	path = test-fixtures/string-extra
+	url = https://github.com/elm-community/string-extra.git
+[submodule "test-fixtures/elm-json-decode-pipeline"]
+	path = test-fixtures/elm-json-decode-pipeline
+	url = https://github.com/NoRedInk/elm-json-decode-pipeline.git
+[submodule "test-fixtures/project-metadata-utils"]
+	path = test-fixtures/project-metadata-utils
+	url = https://github.com/elm/project-metadata-utils.git
+[submodule "test-fixtures/linear-algebra"]
+	path = test-fixtures/linear-algebra
+	url = https://github.com/elm-explorations/linear-algebra.git
+[submodule "test-fixtures/webgl"]
+	path = test-fixtures/webgl
+	url = https://github.com/elm-explorations/webgl.git
+[submodule "test-fixtures/benchmark"]
+	path = test-fixtures/benchmark
+	url = https://github.com/elm-explorations/benchmark.git
+[submodule "test-fixtures/elm-sweet-poll"]
+	path = test-fixtures/elm-sweet-poll
+	url = https://github.com/NoRedInk/elm-sweet-poll.git
+[submodule "test-fixtures/elm-compare"]
+	path = test-fixtures/elm-compare
+	url = https://github.com/NoRedInk/elm-compare.git
+[submodule "test-fixtures/elm-string-conversions"]
+	path = test-fixtures/elm-string-conversions
+	url = https://github.com/NoRedInk/elm-string-conversions.git
+[submodule "test-fixtures/elm-sortable-table"]
+	path = test-fixtures/elm-sortable-table
+	url = https://github.com/NoRedInk/elm-sortable-table.git
+[submodule "test-fixtures/dict-extra"]
+	path = test-fixtures/dict-extra
+	url = https://github.com/elm-community/dict-extra.git
+[submodule "test-fixtures/array-extra"]
+	path = test-fixtures/array-extra
+	url = https://github.com/elm-community/array-extra.git
+[submodule "test-fixtures/result-extra"]
+	path = test-fixtures/result-extra
+	url = https://github.com/elm-community/result-extra.git
+[submodule "test-fixtures/html-extra"]
+	path = test-fixtures/html-extra
+	url = https://github.com/elm-community/html-extra.git
+[submodule "test-fixtures/json-extra"]
+	path = test-fixtures/json-extra
+	url = https://github.com/elm-community/json-extra.git
+[submodule "test-fixtures/elm-hex"]
+	path = test-fixtures/elm-hex
+	url = https://github.com/rtfeldman/elm-hex.git
+[submodule "test-fixtures/elm-iso8601-date-strings"]
+	path = test-fixtures/elm-iso8601-date-strings
+	url = https://github.com/rtfeldman/elm-iso8601-date-strings.git
+[submodule "test-fixtures/elm-markdown"]
+	path = test-fixtures/elm-markdown
+	url = https://github.com/dillonkearns/elm-markdown.git
+[submodule "test-fixtures/remotedata"]
+	path = test-fixtures/remotedata
+	url = https://github.com/krisajenkins/remotedata.git
+[submodule "test-fixtures/murmur3"]
+	path = test-fixtures/murmur3
+	url = https://github.com/robinheghan/murmur3.git
+[submodule "test-fixtures/elm-round"]
+	path = test-fixtures/elm-round
+	url = https://github.com/myrho/elm-round.git
+[submodule "test-fixtures/elm-base64"]
+	path = test-fixtures/elm-base64
+	url = https://github.com/truqu/elm-base64.git
+[submodule "test-fixtures/elm-flate"]
+	path = test-fixtures/elm-flate
+	url = https://github.com/folkertdev/elm-flate.git
+[submodule "test-fixtures/elm-csv"]
+	path = test-fixtures/elm-csv
+	url = https://github.com/BrianHicks/elm-csv.git
+[submodule "test-fixtures/elm-rosetree"]
+	path = test-fixtures/elm-rosetree
+	url = https://github.com/zwilias/elm-rosetree.git
+[submodule "test-fixtures/assoc-list"]
+	path = test-fixtures/assoc-list
+	url = https://github.com/pzp1997/assoc-list.git
+[submodule "test-fixtures/elm-bool-extra"]
+	path = test-fixtures/elm-bool-extra
+	url = https://github.com/Chadtech/elm-bool-extra.git
+[submodule "test-fixtures/typed-svg"]
+	path = test-fixtures/typed-svg
+	url = https://github.com/elm-community/typed-svg.git
+[submodule "test-fixtures/elm-animator"]
+	path = test-fixtures/elm-animator
+	url = https://github.com/mdgriffith/elm-animator.git

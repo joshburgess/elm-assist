@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "crates/elm-lint",
+    "crates/elm-lsp",
+    "crates/elm-deps",
+    "crates/elm-unused",
+    "crates/elm-refactor",
+    "crates/elm-search",
+]
+resolver = "3"
