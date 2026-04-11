@@ -70,11 +70,10 @@ impl Visit for Visitor<'_> {
                                 &self.source[left.span.start.offset..left.span.end.offset];
                             let right_text =
                                 &self.source[right.span.start.offset..right.span.end.offset];
-                            let replacement =
-                                format!("{left_text} {negated} {right_text}");
+                            let replacement = format!("{left_text} {negated} {right_text}");
                             self.errors.push(LintError {
                                 rule: "NoNegationOfBooleanOperator",
-                    severity: Severity::Warning,
+                                severity: Severity::Warning,
                                 message: format!(
                                     "`not (a {operator} b)` can be written as `a {negated} b`"
                                 ),

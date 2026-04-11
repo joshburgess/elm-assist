@@ -43,9 +43,9 @@ impl Edit {
     /// The span this edit operates on.
     pub fn span(&self) -> Span {
         match self {
-            Edit::Replace { span, .. }
-            | Edit::InsertAfter { span, .. }
-            | Edit::Remove { span } => *span,
+            Edit::Replace { span, .. } | Edit::InsertAfter { span, .. } | Edit::Remove { span } => {
+                *span
+            }
         }
     }
 }

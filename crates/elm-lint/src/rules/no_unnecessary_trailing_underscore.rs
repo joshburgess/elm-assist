@@ -89,7 +89,10 @@ fn check_pattern_trailing(
             check_pattern_trailing(head, scope, errors);
             check_pattern_trailing(tail, scope, errors);
         }
-        Pattern::As { pattern: inner, name } => {
+        Pattern::As {
+            pattern: inner,
+            name,
+        } => {
             check_pattern_trailing(inner, scope, errors);
             check_trailing_name(&name.value, name.span, scope, errors);
         }
@@ -146,7 +149,10 @@ fn collect_names(pat: &Pattern, scope: &mut HashSet<String>) {
             collect_names(&head.value, scope);
             collect_names(&tail.value, scope);
         }
-        Pattern::As { pattern: inner, name } => {
+        Pattern::As {
+            pattern: inner,
+            name,
+        } => {
             collect_names(&inner.value, scope);
             scope.insert(name.value.clone());
         }
@@ -157,11 +163,7 @@ fn collect_names(pat: &Pattern, scope: &mut HashSet<String>) {
     }
 }
 
-fn check_expr_trailing(
-    expr: &Spanned<Expr>,
-    scope: &HashSet<String>,
-    errors: &mut Vec<LintError>,
-) {
+fn check_expr_trailing(expr: &Spanned<Expr>, scope: &HashSet<String>, errors: &mut Vec<LintError>) {
     match &expr.value {
         Expr::LetIn { declarations, body } => {
             let mut inner_scope = scope.clone();

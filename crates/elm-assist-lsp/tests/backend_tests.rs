@@ -4,9 +4,9 @@ use std::time::Duration;
 use futures::{SinkExt, StreamExt};
 use tokio::sync::Mutex;
 use tower::Service;
+use tower_lsp::LspService;
 use tower_lsp::jsonrpc::{Request, Response};
 use tower_lsp::lsp_types::*;
-use tower_lsp::LspService;
 
 use elm_assist_lsp::backend::Backend;
 
@@ -92,12 +92,7 @@ async fn did_open(service: &mut LspService<Backend>, uri: &Url, text: &str) {
 }
 
 /// Send a didChange notification.
-async fn did_change(
-    service: &mut LspService<Backend>,
-    uri: &Url,
-    text: &str,
-    version: i32,
-) {
+async fn did_change(service: &mut LspService<Backend>, uri: &Url, text: &str, version: i32) {
     let params = DidChangeTextDocumentParams {
         text_document: VersionedTextDocumentIdentifier {
             uri: uri.clone(),
@@ -127,7 +122,9 @@ async fn wait_for_diagnostics(
     let msgs = messages.lock().await;
     msgs.iter()
         .filter(|m| m["method"] == "textDocument/publishDiagnostics")
-        .filter_map(|m| serde_json::from_value::<PublishDiagnosticsParams>(m["params"].clone()).ok())
+        .filter_map(|m| {
+            serde_json::from_value::<PublishDiagnosticsParams>(m["params"].clone()).ok()
+        })
         .filter(|p| p.uri == *uri)
         .collect()
 }

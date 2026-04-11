@@ -61,8 +61,7 @@ impl Visit for Visitor<'_> {
             }
             // identity <| x → x
             else if operator == "<|" && is_identity(&left.value) {
-                let right_text =
-                    &self.source[right.span.start.offset..right.span.end.offset];
+                let right_text = &self.source[right.span.start.offset..right.span.end.offset];
                 self.errors.push(LintError {
                     rule: "NoPipelineSimplify",
                     severity: Severity::Warning,

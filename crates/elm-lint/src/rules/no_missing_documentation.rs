@@ -55,7 +55,9 @@ impl Rule for NoMissingDocumentation {
                         errors.push(LintError {
                             rule: self.name(),
                             severity: Severity::Warning,
-                            message: format!("`{name}` is exposed but has no documentation comment"),
+                            message: format!(
+                                "`{name}` is exposed but has no documentation comment"
+                            ),
                             span: func.declaration.value.name.span,
                             fix: None,
                         });

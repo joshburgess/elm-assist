@@ -45,10 +45,8 @@ impl Visit for Visitor<'_> {
                     let replacement = format!("{left_text} {op} {right_text}");
                     self.errors.push(LintError {
                         rule: "NoFullyAppliedPrefixOperator",
-                    severity: Severity::Warning,
-                        message: format!(
-                            "`({op}) a b` can be written as `a {op} b`"
-                        ),
+                        severity: Severity::Warning,
+                        message: format!("`({op}) a b` can be written as `a {op} b`"),
                         span: expr.span,
                         fix: Some(Fix::replace(expr.span, replacement)),
                     });

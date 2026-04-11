@@ -25,7 +25,7 @@ impl Rule for NoBooleanCase {
             .into_iter()
             .map(|span| LintError {
                 rule: self.name(),
-                    severity: Severity::Warning,
+                severity: Severity::Warning,
                 message: "Use `if`/`else` instead of `case` on Bool".into(),
                 span,
                 fix: None,

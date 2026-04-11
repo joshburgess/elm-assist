@@ -129,7 +129,10 @@ fn find_unsafe_type(ty: &TypeAnnotation) -> Option<String> {
         }
 
         TypeAnnotation::Typed {
-            module_name, name, args, ..
+            module_name,
+            name,
+            args,
+            ..
         } => {
             let unqualified = &name.value;
 
@@ -173,13 +176,9 @@ fn find_unsafe_type(ty: &TypeAnnotation) -> Option<String> {
             None
         }
 
-        TypeAnnotation::GenericRecord { .. } => {
-            Some("an extensible record type".to_string())
-        }
+        TypeAnnotation::GenericRecord { .. } => Some("an extensible record type".to_string()),
 
-        TypeAnnotation::FunctionType { .. } => {
-            Some("a function type".to_string())
-        }
+        TypeAnnotation::FunctionType { .. } => Some("a function type".to_string()),
     }
 }
 

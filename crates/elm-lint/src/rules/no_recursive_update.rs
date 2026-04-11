@@ -23,9 +23,7 @@ impl Rule for NoRecursiveUpdate {
             if let Declaration::FunctionDeclaration(func) = &decl.value {
                 let name = &func.declaration.value.name.value;
                 if name == "update" {
-                    let mut visitor = Visitor {
-                        errors: Vec::new(),
-                    };
+                    let mut visitor = Visitor { errors: Vec::new() };
                     visitor.check_expr(&func.declaration.value.body);
                     return visitor.errors;
                 }

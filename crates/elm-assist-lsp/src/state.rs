@@ -60,18 +60,16 @@ impl ServerState {
     /// Create a new server state, scanning the project for all .elm files.
     pub fn new(workspace_root: PathBuf) -> Self {
         // Load config.
-        let config = Config::discover()
-            .map(|(_path, c)| c)
-            .unwrap_or_default();
+        let config = Config::discover().map(|(_path, c)| c).unwrap_or_default();
 
         let mut rules = rules::all_rules();
 
         // Apply per-rule config options.
         for rule in &mut rules {
-            if let Some(options) = config.rule_options(rule.name()) {
-                if let Err(e) = rule.configure(options) {
-                    eprintln!("Warning: error configuring rule {}: {e}", rule.name());
-                }
+            if let Some(options) = config.rule_options(rule.name())
+                && let Err(e) = rule.configure(options)
+            {
+                eprintln!("Warning: error configuring rule {}: {e}", rule.name());
             }
         }
 
@@ -111,9 +109,7 @@ impl ServerState {
 
     /// Reload config from disk.
     pub fn reload_config(&mut self) {
-        self.config = Config::discover()
-            .map(|(_path, c)| c)
-            .unwrap_or_default();
+        self.config = Config::discover().map(|(_path, c)| c).unwrap_or_default();
     }
 
     /// Update a document with new source text.
@@ -149,8 +145,10 @@ impl ServerState {
         self.all_module_names = all_names;
 
         let elm_json_info = elm_json::load_elm_json(&self.workspace_root).ok();
-        self.project_context =
-            Some(ProjectContext::build_with_elm_json(module_infos, elm_json_info));
+        self.project_context = Some(ProjectContext::build_with_elm_json(
+            module_infos,
+            elm_json_info,
+        ));
     }
 
     /// Get the active rules, respecting config disable settings.

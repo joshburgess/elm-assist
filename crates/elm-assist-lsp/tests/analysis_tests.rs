@@ -136,7 +136,10 @@ fn parse_recovering_provides_partial_ast() {
     let doc = state.documents.get(&uri).unwrap();
 
     // Should have a partial AST (the valid declaration parsed).
-    assert!(doc.module.is_some(), "expected partial AST from recovering parse");
+    assert!(
+        doc.module.is_some(),
+        "expected partial AST from recovering parse"
+    );
 
     // Should have parse errors for the invalid part.
     assert!(

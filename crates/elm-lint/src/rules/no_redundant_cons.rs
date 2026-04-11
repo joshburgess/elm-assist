@@ -34,23 +34,22 @@ struct Visitor<'a> {
 impl Visit for Visitor<'_> {
     fn visit_expr(&mut self, expr: &Spanned<Expr>) {
         if let Expr::OperatorApplication {
-            operator, left, right, ..
+            operator,
+            left,
+            right,
+            ..
         } = &expr.value
         {
             if operator == "::" {
                 if let Expr::List(elems) = &right.value {
                     if elems.is_empty() {
-                        let left_text =
-                            &self.source[left.span.start.offset..left.span.end.offset];
+                        let left_text = &self.source[left.span.start.offset..left.span.end.offset];
                         self.errors.push(LintError {
                             rule: "NoRedundantCons",
-                    severity: Severity::Warning,
+                            severity: Severity::Warning,
                             message: "`x :: []` can be simplified to `[ x ]`".into(),
                             span: expr.span,
-                            fix: Some(Fix::replace(
-                                expr.span,
-                                format!("[ {left_text} ]"),
-                            )),
+                            fix: Some(Fix::replace(expr.span, format!("[ {left_text} ]"))),
                         });
                     }
                 }

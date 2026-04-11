@@ -57,7 +57,7 @@ impl Visit for Visitor<'_> {
                         let merged = format!("[ {} ]", all_elems.join(", "));
                         self.errors.push(LintError {
                             rule: "NoListLiteralConcat",
-                    severity: Severity::Warning,
+                            severity: Severity::Warning,
                             message: "Two list literals concatenated can be written as one list"
                                 .into(),
                             span: expr.span,

@@ -61,8 +61,7 @@ impl Visit for Visitor<'_> {
                 && is_result_map(&args[0].value)
                 && is_err_application(&args[2].value)
             {
-                let err_text =
-                    &self.source[args[2].span.start.offset..args[2].span.end.offset];
+                let err_text = &self.source[args[2].span.start.offset..args[2].span.end.offset];
                 self.errors.push(LintError {
                     rule: "NoResultMapWithErr",
                     severity: Severity::Warning,

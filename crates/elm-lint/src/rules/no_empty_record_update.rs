@@ -35,8 +35,7 @@ impl Visit for Visitor<'_> {
     fn visit_expr(&mut self, expr: &Spanned<Expr>) {
         if let Expr::RecordUpdate { base, updates } = &expr.value {
             if updates.is_empty() {
-                let name_text =
-                    &self.source[base.span.start.offset..base.span.end.offset];
+                let name_text = &self.source[base.span.start.offset..base.span.end.offset];
                 self.errors.push(LintError {
                     rule: "NoEmptyRecordUpdate",
                     severity: Severity::Warning,

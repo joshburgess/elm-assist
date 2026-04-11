@@ -89,10 +89,7 @@ fn diagnostic_has_correct_fields() {
 
     assert_eq!(diag.severity, Some(DiagnosticSeverity::WARNING));
     assert_eq!(diag.source, Some("elm-lint".into()));
-    assert_eq!(
-        diag.code,
-        Some(NumberOrString::String("TestRule".into()))
-    );
+    assert_eq!(diag.code, Some(NumberOrString::String("TestRule".into())));
     assert_eq!(diag.message, "test message");
     assert_eq!(diag.range.start.line, 4);
     assert_eq!(diag.range.start.character, 2);

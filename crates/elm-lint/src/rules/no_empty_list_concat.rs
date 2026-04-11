@@ -46,21 +46,19 @@ impl Visit for Visitor<'_> {
         {
             if operator == "++" {
                 if is_empty_list(&left.value) {
-                    let right_text =
-                        &self.source[right.span.start.offset..right.span.end.offset];
+                    let right_text = &self.source[right.span.start.offset..right.span.end.offset];
                     self.errors.push(LintError {
                         rule: "NoEmptyListConcat",
-                    severity: Severity::Warning,
+                        severity: Severity::Warning,
                         message: "`[] ++ list` is equivalent to `list`".into(),
                         span: expr.span,
                         fix: Some(Fix::replace(expr.span, right_text.to_string())),
                     });
                 } else if is_empty_list(&right.value) {
-                    let left_text =
-                        &self.source[left.span.start.offset..left.span.end.offset];
+                    let left_text = &self.source[left.span.start.offset..left.span.end.offset];
                     self.errors.push(LintError {
                         rule: "NoEmptyListConcat",
-                    severity: Severity::Warning,
+                        severity: Severity::Warning,
                         message: "`list ++ []` is equivalent to `list`".into(),
                         span: expr.span,
                         fix: Some(Fix::replace(expr.span, left_text.to_string())),

@@ -17,9 +17,7 @@ impl Rule for NoMaybeMapWithNothing {
     }
 
     fn check(&self, ctx: &LintContext) -> Vec<LintError> {
-        let mut visitor = Visitor {
-            errors: Vec::new(),
-        };
+        let mut visitor = Visitor { errors: Vec::new() };
         visitor.visit_module(ctx.module);
         visitor.errors
     }

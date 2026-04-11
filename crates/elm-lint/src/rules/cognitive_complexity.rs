@@ -137,11 +137,8 @@ fn compute_complexity(expr: &Spanned<Expr>, func_name: &str, nesting: u32) -> u3
                 match &decl.value {
                     LetDeclaration::Function(f) => {
                         // Let functions add nesting
-                        cost += compute_complexity(
-                            &f.declaration.value.body,
-                            func_name,
-                            nesting + 1,
-                        );
+                        cost +=
+                            compute_complexity(&f.declaration.value.body, func_name, nesting + 1);
                     }
                     LetDeclaration::Destructuring { body: b, .. } => {
                         cost += compute_complexity(b, func_name, nesting);

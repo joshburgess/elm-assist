@@ -18,9 +18,7 @@ impl Rule for NoStringConcat {
     }
 
     fn check(&self, ctx: &LintContext) -> Vec<LintError> {
-        let mut visitor = Visitor {
-            errors: Vec::new(),
-        };
+        let mut visitor = Visitor { errors: Vec::new() };
         visitor.visit_module(ctx.module);
         visitor.errors
     }
@@ -40,19 +38,17 @@ impl Visit for Visitor {
         } = &expr.value
         {
             if operator == "++" {
-                match (&left.value, &right.value) {
-                    (Expr::Literal(Literal::String(l)), Expr::Literal(Literal::String(r))) => {
-                        let merged = format!("\"{}{}\"", l, r);
-                        self.errors.push(LintError {
-                            rule: "NoStringConcat",
-                    severity: Severity::Warning,
-                            message: "Two string literals concatenated can be written as one"
-                                .into(),
-                            span: expr.span,
-                            fix: Some(Fix::replace(expr.span, merged)),
-                        });
-                    }
-                    _ => {}
+                if let (Expr::Literal(Literal::String(l)), Expr::Literal(Literal::String(r))) =
+                    (&left.value, &right.value)
+                {
+                    let merged = format!("\"{}{}\"", l, r);
+                    self.errors.push(LintError {
+                        rule: "NoStringConcat",
+                        severity: Severity::Warning,
+                        message: "Two string literals concatenated can be written as one".into(),
+                        span: expr.span,
+                        fix: Some(Fix::replace(expr.span, merged)),
+                    });
                 }
             }
         }

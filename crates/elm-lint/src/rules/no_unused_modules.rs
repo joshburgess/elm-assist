@@ -31,7 +31,7 @@ impl Rule for NoUnusedModules {
         if !is_imported {
             vec![LintError {
                 rule: "NoUnusedModules",
-                    severity: Severity::Warning,
+                severity: Severity::Warning,
                 message: format!("Module `{mod_name}` is never imported by any other module"),
                 span: ctx.module.header.span,
                 fix: None,

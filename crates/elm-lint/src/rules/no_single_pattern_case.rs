@@ -24,7 +24,7 @@ impl Rule for NoSinglePatternCase {
             .into_iter()
             .map(|span| LintError {
                 rule: self.name(),
-                    severity: Severity::Warning,
+                severity: Severity::Warning,
                 message: "Case expression has only one branch — consider using `let` destructuring"
                     .into(),
                 span,

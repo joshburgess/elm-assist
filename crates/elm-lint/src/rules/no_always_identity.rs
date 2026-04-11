@@ -67,12 +67,11 @@ impl Visit for AlwaysVisitor<'_> {
                 if left_is_identity || right_is_identity {
                     // The non-identity side is the replacement.
                     let other = if left_is_identity { right } else { left };
-                    let other_text =
-                        &self.source[other.span.start.offset..other.span.end.offset];
+                    let other_text = &self.source[other.span.start.offset..other.span.end.offset];
 
                     self.errors.push(LintError {
                         rule: "NoAlwaysIdentity",
-                    severity: Severity::Warning,
+                        severity: Severity::Warning,
                         message: format!(
                             "Composing with `identity` using `{operator}` has no effect"
                         ),

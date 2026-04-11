@@ -46,11 +46,7 @@ impl Backend {
         }
 
         let diagnostics = Self::collect_diagnostics(&state, uri);
-        let version = state
-            .documents
-            .get(uri)
-            .map(|d| d.version)
-            .unwrap_or(0);
+        let version = state.documents.get(uri).map(|d| d.version).unwrap_or(0);
 
         drop(state);
 
@@ -70,11 +66,7 @@ impl Backend {
                 doc.lint_errors = errors;
             }
             let diagnostics = Self::collect_diagnostics(&state, &uri);
-            let version = state
-                .documents
-                .get(&uri)
-                .map(|d| d.version)
-                .unwrap_or(0);
+            let version = state.documents.get(&uri).map(|d| d.version).unwrap_or(0);
             to_publish.push((uri, diagnostics, version));
         }
 
@@ -243,11 +235,7 @@ impl LanguageServer for Backend {
                     doc.lint_errors = errors;
                 }
                 let diagnostics = Backend::collect_diagnostics(&s, &uri_clone);
-                let v = s
-                    .documents
-                    .get(&uri_clone)
-                    .map(|d| d.version)
-                    .unwrap_or(0);
+                let v = s.documents.get(&uri_clone).map(|d| d.version).unwrap_or(0);
                 drop(s);
 
                 client

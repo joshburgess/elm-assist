@@ -59,9 +59,7 @@ struct Visitor<'a> {
 impl Visit for Visitor<'_> {
     fn visit_type_annotation(&mut self, ty: &Spanned<TypeAnnotation>) {
         if let TypeAnnotation::Typed {
-            module_name,
-            name,
-            ..
+            module_name, name, ..
         } = &ty.value
         {
             if !module_name.is_empty() {
@@ -71,13 +69,11 @@ impl Visit for Visitor<'_> {
                 if last_segment == name.value {
                     // This is a redundantly qualified type like Set.Set or Dict.Dict.
                     // Fix: replace the full qualified reference with just the type name.
-                    let full_text =
-                        &self.source[ty.span.start.offset..ty.span.end.offset];
+                    let full_text = &self.source[ty.span.start.offset..ty.span.end.offset];
                     // Find where the type args start (if any) to only replace the qualified name part.
                     let qualified_name = format!("{}.{}", qualifier, name.value);
                     if full_text.starts_with(&qualified_name) {
-                        let replacement_end =
-                            ty.span.start.offset + qualified_name.len();
+                        let replacement_end = ty.span.start.offset + qualified_name.len();
                         let replace_span = elm_ast::span::Span {
                             start: ty.span.start,
                             end: elm_ast::span::Position {

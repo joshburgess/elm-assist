@@ -21,7 +21,9 @@ impl Rule for NoTodoComment {
         for (line_idx, line) in ctx.source.lines().enumerate() {
             for pattern in &patterns {
                 if let Some(col) = line.find(pattern) {
-                    let line_start_offset = ctx.source.as_bytes()
+                    let line_start_offset = ctx
+                        .source
+                        .as_bytes()
                         .iter()
                         .enumerate()
                         .scan(0usize, |current_line, (offset, &byte)| {
@@ -42,7 +44,7 @@ impl Rule for NoTodoComment {
 
                     errors.push(LintError {
                         rule: "NoTodoComment",
-                    severity: Severity::Warning,
+                        severity: Severity::Warning,
                         message: format!("Found `{pattern}` comment"),
                         span: Span {
                             start: Position {

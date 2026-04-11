@@ -111,7 +111,10 @@ fn check_pattern_shadowing(
             check_pattern_shadowing(head, scope, errors);
             check_pattern_shadowing(tail, scope, errors);
         }
-        Pattern::As { pattern: inner, name } => {
+        Pattern::As {
+            pattern: inner,
+            name,
+        } => {
             check_pattern_shadowing(inner, scope, errors);
             if scope.contains(&name.value) {
                 errors.push(LintError {
@@ -154,7 +157,10 @@ fn collect_pattern_names(pat: &Pattern, scope: &mut HashSet<String>) {
             collect_pattern_names(&head.value, scope);
             collect_pattern_names(&tail.value, scope);
         }
-        Pattern::As { pattern: inner, name } => {
+        Pattern::As {
+            pattern: inner,
+            name,
+        } => {
             collect_pattern_names(&inner.value, scope);
             scope.insert(name.value.clone());
         }
@@ -181,9 +187,7 @@ fn check_expr_shadowing(
                             errors.push(LintError {
                                 rule: "NoShadowing",
                                 severity: Severity::Warning,
-                                message: format!(
-                                    "`{name}` shadows a name from an outer scope"
-                                ),
+                                message: format!("`{name}` shadows a name from an outer scope"),
                                 span: func.declaration.value.name.span,
                                 fix: None,
                             });

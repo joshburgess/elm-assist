@@ -138,9 +138,7 @@ fn main() {
 
             all_rules
                 .iter()
-                .filter(|r| {
-                    !config.is_rule_disabled(r.name()) && !cli_disabled.contains(&r.name())
-                })
+                .filter(|r| !config.is_rule_disabled(r.name()) && !cli_disabled.contains(&r.name()))
                 .map(|r| r.as_ref())
                 .collect()
         }
@@ -233,7 +231,10 @@ fn run_lint(
     let file_hashes: HashMap<String, u64> = file_contents
         .iter()
         .map(|(path, source)| {
-            (path.display().to_string(), cache::hash_contents(source.as_bytes()))
+            (
+                path.display().to_string(),
+                cache::hash_contents(source.as_bytes()),
+            )
         })
         .collect();
 
@@ -262,7 +263,13 @@ fn run_lint(
         );
 
         let total_errors: usize = file_errors.values().map(|v| v.len()).sum();
-        output::report(format, &file_errors, &sources, file_contents.len(), active_rules.len());
+        output::report(
+            format,
+            &file_errors,
+            &sources,
+            file_contents.len(),
+            active_rules.len(),
+        );
         output::report_summary(format, &file_errors);
 
         return (total_errors, file_errors, sources);
@@ -305,9 +312,7 @@ fn run_lint(
     // Phase 2: Collect ModuleInfo in parallel.
     let module_infos: HashMap<String, elm_lint::collect::ModuleInfo> = parsed
         .par_iter()
-        .map(|(_path, mod_name, module, _source)| {
-            (mod_name.clone(), collect_module_info(module))
-        })
+        .map(|(_path, mod_name, module, _source)| (mod_name.clone(), collect_module_info(module)))
         .collect();
 
     // Load elm.json for dependency checking.
@@ -374,7 +379,13 @@ fn run_lint(
     let total_errors: usize = file_errors.values().map(|v| v.len()).sum();
 
     // Report findings.
-    output::report(format, &file_errors, &sources, parsed.len(), active_rules.len());
+    output::report(
+        format,
+        &file_errors,
+        &sources,
+        parsed.len(),
+        active_rules.len(),
+    );
     output::report_summary(format, &file_errors);
 
     (total_errors, file_errors, sources)

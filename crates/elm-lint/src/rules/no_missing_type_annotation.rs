@@ -23,7 +23,7 @@ impl Rule for NoMissingTypeAnnotation {
                     let name = &func.declaration.value.name.value;
                     errors.push(LintError {
                         rule: self.name(),
-                    severity: Severity::Warning,
+                        severity: Severity::Warning,
                         message: format!("`{name}` is missing a type annotation"),
                         span: func.declaration.value.name.span,
                         fix: None,

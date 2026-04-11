@@ -60,7 +60,10 @@ fn check_unused_param(
                 });
             }
         }
-        Pattern::As { pattern: inner, name } => {
+        Pattern::As {
+            pattern: inner,
+            name,
+        } => {
             let inner_used = pattern_has_used_names(&inner.value, refs);
             let as_used = refs.contains(&name.value);
 
@@ -68,9 +71,11 @@ fn check_unused_param(
                 errors.push(LintError {
                     rule: "NoUnusedParameters",
                     severity: Severity::Warning,
-                    message: format!("Parameter `{} as {}` is never used",
+                    message: format!(
+                        "Parameter `{} as {}` is never used",
                         &source[inner.span.start.offset..inner.span.end.offset],
-                        name.value),
+                        name.value
+                    ),
                     span: pattern.span,
                     fix: Some(Fix::replace(pattern.span, "_".to_string())),
                 });
@@ -124,12 +129,12 @@ fn pattern_has_used_names(pat: &Pattern, refs: &HashSet<String>) -> bool {
         }
         Pattern::Record(fields) => fields.iter().any(|f| refs.contains(&f.value)),
         Pattern::Cons { head, tail } => {
-            pattern_has_used_names(&head.value, refs)
-                || pattern_has_used_names(&tail.value, refs)
+            pattern_has_used_names(&head.value, refs) || pattern_has_used_names(&tail.value, refs)
         }
-        Pattern::As { pattern: inner, name } => {
-            pattern_has_used_names(&inner.value, refs) || refs.contains(&name.value)
-        }
+        Pattern::As {
+            pattern: inner,
+            name,
+        } => pattern_has_used_names(&inner.value, refs) || refs.contains(&name.value),
         Pattern::Parenthesized(inner) => pattern_has_used_names(&inner.value, refs),
         Pattern::Anything | Pattern::Literal(_) | Pattern::Unit | Pattern::Hex(_) => false,
     }
@@ -241,7 +246,10 @@ fn collect_pattern_refs(pat: &Pattern, refs: &mut HashSet<String>) {
             collect_pattern_refs(&head.value, refs);
             collect_pattern_refs(&tail.value, refs);
         }
-        Pattern::As { pattern: inner, name } => {
+        Pattern::As {
+            pattern: inner,
+            name,
+        } => {
             collect_pattern_refs(&inner.value, refs);
             refs.insert(name.value.clone());
         }

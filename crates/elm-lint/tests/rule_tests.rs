@@ -253,7 +253,8 @@ fn lint_project(sources: &[(&str, &str)], rule: &dyn Rule) -> Vec<(String, Strin
     let mut module_infos = HashMap::new();
 
     for (file_path, source) in sources {
-        let module = parse(source).unwrap_or_else(|e| panic!("parse failed for {file_path}: {e:?}"));
+        let module =
+            parse(source).unwrap_or_else(|e| panic!("parse failed for {file_path}: {e:?}"));
         let info = collect_module_info(&module);
         let mod_name = info.module_name.join(".");
         module_infos.insert(mod_name.clone(), info);
@@ -286,8 +287,14 @@ fn lint_project(sources: &[(&str, &str)], rule: &dyn Rule) -> Vec<(String, Strin
 fn no_unused_exports_flags_unused() {
     let errors = lint_project(
         &[
-            ("A.elm", "module A exposing (foo, bar)\n\nfoo = 1\n\nbar = 2"),
-            ("B.elm", "module B exposing (..)\n\nimport A exposing (foo)\n\nx = foo"),
+            (
+                "A.elm",
+                "module A exposing (foo, bar)\n\nfoo = 1\n\nbar = 2",
+            ),
+            (
+                "B.elm",
+                "module B exposing (..)\n\nimport A exposing (foo)\n\nx = foo",
+            ),
         ],
         &rules::no_unused_exports::NoUnusedExports,
     );
@@ -301,7 +308,10 @@ fn no_unused_exports_passes_when_imported() {
     let errors = lint_project(
         &[
             ("A.elm", "module A exposing (foo)\n\nfoo = 1"),
-            ("B.elm", "module B exposing (..)\n\nimport A exposing (foo)\n\nx = foo"),
+            (
+                "B.elm",
+                "module B exposing (..)\n\nimport A exposing (foo)\n\nx = foo",
+            ),
         ],
         &rules::no_unused_exports::NoUnusedExports,
     );
@@ -324,9 +334,7 @@ fn no_unused_exports_skips_exposing_all() {
 #[test]
 fn no_unused_exports_passes_internally_used() {
     let errors = lint_project(
-        &[
-            ("A.elm", "module A exposing (foo)\n\nfoo = bar\n\nbar = 1"),
-        ],
+        &[("A.elm", "module A exposing (foo)\n\nfoo = bar\n\nbar = 1")],
         &rules::no_unused_exports::NoUnusedExports,
     );
     // foo is exported and uses bar internally — foo itself is not used externally
@@ -342,7 +350,10 @@ fn no_unused_exports_conservative_with_exposing_all_import() {
     let errors = lint_project(
         &[
             ("A.elm", "module A exposing (foo)\n\nfoo = 1"),
-            ("B.elm", "module B exposing (..)\n\nimport A exposing (..)\n\nx = foo"),
+            (
+                "B.elm",
+                "module B exposing (..)\n\nimport A exposing (..)\n\nx = foo",
+            ),
         ],
         &rules::no_unused_exports::NoUnusedExports,
     );
@@ -354,8 +365,14 @@ fn no_unused_exports_conservative_with_exposing_all_import() {
 fn no_unused_exports_flags_unused_type() {
     let errors = lint_project(
         &[
-            ("A.elm", "module A exposing (Foo, Bar)\n\ntype alias Foo = Int\n\ntype alias Bar = String"),
-            ("B.elm", "module B exposing (..)\n\nimport A exposing (Foo)\n\nx : Foo\nx = 1"),
+            (
+                "A.elm",
+                "module A exposing (Foo, Bar)\n\ntype alias Foo = Int\n\ntype alias Bar = String",
+            ),
+            (
+                "B.elm",
+                "module B exposing (..)\n\nimport A exposing (Foo)\n\nx : Foo\nx = 1",
+            ),
         ],
         &rules::no_unused_exports::NoUnusedExports,
     );
@@ -369,9 +386,10 @@ fn no_unused_exports_flags_unused_type() {
 #[test]
 fn no_unused_constructors_flags_unused() {
     let errors = lint_project(
-        &[
-            ("A.elm", "module A exposing (..)\n\ntype Msg = Used | Unused\n\nx = Used"),
-        ],
+        &[(
+            "A.elm",
+            "module A exposing (..)\n\ntype Msg = Used | Unused\n\nx = Used",
+        )],
         &rules::no_unused_custom_type_constructors::NoUnusedCustomTypeConstructors,
     );
     assert_eq!(errors.len(), 1);
@@ -381,9 +399,10 @@ fn no_unused_constructors_flags_unused() {
 #[test]
 fn no_unused_constructors_passes_when_used() {
     let errors = lint_project(
-        &[
-            ("A.elm", "module A exposing (..)\n\ntype Msg = Click | Hover\n\nx = Click\n\ny = Hover"),
-        ],
+        &[(
+            "A.elm",
+            "module A exposing (..)\n\ntype Msg = Click | Hover\n\nx = Click\n\ny = Hover",
+        )],
         &rules::no_unused_custom_type_constructors::NoUnusedCustomTypeConstructors,
     );
     assert_eq!(errors.len(), 0);
@@ -393,8 +412,14 @@ fn no_unused_constructors_passes_when_used() {
 fn no_unused_constructors_cross_module() {
     let errors = lint_project(
         &[
-            ("A.elm", "module A exposing (..)\n\ntype Msg = Click | Hover"),
-            ("B.elm", "module B exposing (..)\n\nimport A\n\nx = A.Click\n\ny = A.Hover"),
+            (
+                "A.elm",
+                "module A exposing (..)\n\ntype Msg = Click | Hover",
+            ),
+            (
+                "B.elm",
+                "module B exposing (..)\n\nimport A\n\nx = A.Click\n\ny = A.Hover",
+            ),
         ],
         &rules::no_unused_custom_type_constructors::NoUnusedCustomTypeConstructors,
     );
@@ -405,9 +430,10 @@ fn no_unused_constructors_cross_module() {
 #[test]
 fn no_unused_constructors_pattern_match() {
     let errors = lint_project(
-        &[
-            ("A.elm", "module A exposing (..)\n\ntype Msg = Click | Hover\n\nhandle msg =\n    case msg of\n        Click ->\n            1\n        Hover ->\n            2"),
-        ],
+        &[(
+            "A.elm",
+            "module A exposing (..)\n\ntype Msg = Click | Hover\n\nhandle msg =\n    case msg of\n        Click ->\n            1\n        Hover ->\n            2",
+        )],
         &rules::no_unused_custom_type_constructors::NoUnusedCustomTypeConstructors,
     );
     assert_eq!(errors.len(), 0);
@@ -446,7 +472,10 @@ fn no_unused_modules_passes_when_imported() {
 fn no_unused_modules_exempts_main() {
     let errors = lint_project(
         &[
-            ("Main.elm", "module Main exposing (..)\n\nimport A\n\nx = A.foo"),
+            (
+                "Main.elm",
+                "module Main exposing (..)\n\nimport A\n\nx = A.foo",
+            ),
             ("A.elm", "module A exposing (..)\n\nfoo = 1"),
         ],
         &rules::no_unused_modules::NoUnusedModules,
@@ -520,8 +549,8 @@ fn lint_and_fix(source: &str, rule: &dyn Rule) -> String {
         .as_ref()
         .unwrap_or_else(|| panic!("rule {} should provide a fix", errors[0].rule));
 
-    let fixed = apply_fixes(source, &fix.edits)
-        .unwrap_or_else(|e| panic!("apply_fixes failed: {e}"));
+    let fixed =
+        apply_fixes(source, &fix.edits).unwrap_or_else(|e| panic!("apply_fixes failed: {e}"));
 
     // Verify the fixed source parses.
     parse(&fixed).unwrap_or_else(|e| panic!("fixed source doesn't parse: {e:?}\n---\n{fixed}"));
@@ -1884,10 +1913,7 @@ fn no_unsafe_ports_passes_incoming_safe() {
 #[test]
 fn no_inconsistent_aliases_flags_wrong_alias() {
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-    let config: toml::Value = toml::from_str(
-        r#"aliases = { "Json.Decode" = "Decode" }"#,
-    )
-    .unwrap();
+    let config: toml::Value = toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).unwrap();
     rule.configure(&config).unwrap();
 
     let errors = lint_count(
@@ -1900,10 +1926,7 @@ fn no_inconsistent_aliases_flags_wrong_alias() {
 #[test]
 fn no_inconsistent_aliases_passes_correct_alias() {
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-    let config: toml::Value = toml::from_str(
-        r#"aliases = { "Json.Decode" = "Decode" }"#,
-    )
-    .unwrap();
+    let config: toml::Value = toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).unwrap();
     rule.configure(&config).unwrap();
 
     let errors = lint_count(
@@ -1917,10 +1940,8 @@ fn no_inconsistent_aliases_passes_correct_alias() {
 fn no_inconsistent_aliases_passes_default_alias_match() {
     // If the canonical alias matches the default (last segment), no alias needed.
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-    let config: toml::Value = toml::from_str(
-        r#"aliases = { "Html.Attributes" = "Attributes" }"#,
-    )
-    .unwrap();
+    let config: toml::Value =
+        toml::from_str(r#"aliases = { "Html.Attributes" = "Attributes" }"#).unwrap();
     rule.configure(&config).unwrap();
 
     let errors = lint_count(
@@ -1934,10 +1955,8 @@ fn no_inconsistent_aliases_passes_default_alias_match() {
 fn no_inconsistent_aliases_flags_missing_alias() {
     // Default alias "Attributes" doesn't match canonical "Attr".
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-    let config: toml::Value = toml::from_str(
-        r#"aliases = { "Html.Attributes" = "Attr" }"#,
-    )
-    .unwrap();
+    let config: toml::Value =
+        toml::from_str(r#"aliases = { "Html.Attributes" = "Attr" }"#).unwrap();
     rule.configure(&config).unwrap();
 
     let errors = lint_count(
@@ -1999,8 +2018,11 @@ fn make_elm_json(deps: HashMap<String, String>, is_application: bool) -> ElmJson
         let modules: Option<Vec<String>> = match pkg_name.as_str() {
             "elm/json" => Some(vec!["Json.Decode".into(), "Json.Encode".into()]),
             "elm/html" => Some(vec![
-                "Html".into(), "Html.Attributes".into(), "Html.Events".into(),
-                "Html.Keyed".into(), "Html.Lazy".into(),
+                "Html".into(),
+                "Html.Attributes".into(),
+                "Html.Events".into(),
+                "Html.Keyed".into(),
+                "Html.Lazy".into(),
             ]),
             "elm/http" => Some(vec!["Http".into()]),
             _ => None,
@@ -2106,10 +2128,7 @@ fn no_unused_dependencies_skips_elm_core() {
 
     // Even with no explicit imports, elm/core is never flagged.
     let results = lint_project_with_elm_json(
-        &[(
-            "Main.elm",
-            "module Main exposing (..)\n\nx = 1",
-        )],
+        &[("Main.elm", "module Main exposing (..)\n\nx = 1")],
         elm_json,
         &rules::no_unused_dependencies::NoUnusedDependencies,
     );
@@ -2127,10 +2146,7 @@ fn no_unused_dependencies_skips_unknown_packages() {
 
     // Unknown packages are skipped (no false positives).
     let results = lint_project_with_elm_json(
-        &[(
-            "Main.elm",
-            "module Main exposing (..)\n\nx = 1",
-        )],
+        &[("Main.elm", "module Main exposing (..)\n\nx = 1")],
         elm_json,
         &rules::no_unused_dependencies::NoUnusedDependencies,
     );

@@ -20,9 +20,7 @@ impl Rule for NoUnusedPatterns {
     }
 
     fn check(&self, ctx: &LintContext) -> Vec<LintError> {
-        let mut visitor = Visitor {
-            errors: Vec::new(),
-        };
+        let mut visitor = Visitor { errors: Vec::new() };
         visitor.visit_module(ctx.module);
         visitor.errors
     }
@@ -44,9 +42,7 @@ impl Visit for Visitor {
                     self.errors.push(LintError {
                         rule: "NoUnusedPatterns",
                         severity: Severity::Warning,
-                        message: format!(
-                            "Pattern variable `{name}` is never used in this branch"
-                        ),
+                        message: format!("Pattern variable `{name}` is never used in this branch"),
                         span: *span,
                         fix: None,
                     });
@@ -98,7 +94,10 @@ fn collect_pattern_bindings(
             collect_pattern_bindings(head, out);
             collect_pattern_bindings(tail, out);
         }
-        Pattern::As { pattern: inner, name } => {
+        Pattern::As {
+            pattern: inner,
+            name,
+        } => {
             collect_pattern_bindings(inner, out);
             out.push((name.value.clone(), name.span));
         }

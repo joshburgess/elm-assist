@@ -105,14 +105,21 @@ impl LintCache {
     }
 
     /// Save new results to disk.
-    pub fn save(&self, file_hashes: &HashMap<String, u64>, file_errors: &HashMap<String, Vec<CachedError>>) {
+    pub fn save(
+        &self,
+        file_hashes: &HashMap<String, u64>,
+        file_errors: &HashMap<String, Vec<CachedError>>,
+    ) {
         let mut files = HashMap::new();
         for (path, hash) in file_hashes {
-            let errors = file_errors
-                .get(path)
-                .cloned()
-                .unwrap_or_default();
-            files.insert(path.clone(), CacheEntry { hash: *hash, errors });
+            let errors = file_errors.get(path).cloned().unwrap_or_default();
+            files.insert(
+                path.clone(),
+                CacheEntry {
+                    hash: *hash,
+                    errors,
+                },
+            );
         }
 
         let data = CacheData {

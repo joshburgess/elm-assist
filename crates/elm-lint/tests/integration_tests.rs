@@ -234,25 +234,25 @@ fn every_rule_fires_on_real_code() {
         "NoUnusedCustomTypeConstructors", // requires project context
         "NoUnusedModules",                // requires project context
         // Phase 3 rules — uncommon in well-written packages
-        "NoBoolOperatorSimplify",         // uncommon pattern
-        "NoEmptyListConcat",              // uncommon pattern
-        "NoListLiteralConcat",            // uncommon pattern
-        "NoPipelineSimplify",             // uncommon pattern
-        "NoNegationOfBooleanOperator",    // uncommon pattern
-        "NoStringConcat",                 // uncommon pattern
-        "NoFullyAppliedPrefixOperator",   // uncommon pattern
-        "NoIdentityFunction",             // uncommon pattern
-        "NoSimpleLetBody",                // uncommon pattern
-        "NoUnusedLetBinding",             // uncommon pattern
-        "NoTodoComment",                  // well-maintained packages resolve TODOs
-        "NoMaybeMapWithNothing",          // uncommon pattern
-        "NoResultMapWithErr",             // uncommon pattern
+        "NoBoolOperatorSimplify",       // uncommon pattern
+        "NoEmptyListConcat",            // uncommon pattern
+        "NoListLiteralConcat",          // uncommon pattern
+        "NoPipelineSimplify",           // uncommon pattern
+        "NoNegationOfBooleanOperator",  // uncommon pattern
+        "NoStringConcat",               // uncommon pattern
+        "NoFullyAppliedPrefixOperator", // uncommon pattern
+        "NoIdentityFunction",           // uncommon pattern
+        "NoSimpleLetBody",              // uncommon pattern
+        "NoUnusedLetBinding",           // uncommon pattern
+        "NoTodoComment",                // well-maintained packages resolve TODOs
+        "NoMaybeMapWithNothing",        // uncommon pattern
+        "NoResultMapWithErr",           // uncommon pattern
         // New rules — uncommon in well-written packages or require context
-        "NoDeprecated",                   // packages rarely mark things deprecated inline
-        "NoUnnecessaryPortModule",        // uncommon pattern
+        "NoDeprecated",            // packages rarely mark things deprecated inline
+        "NoUnnecessaryPortModule", // uncommon pattern
         "NoUnusedCustomTypeConstructorArgs", // requires seeing all case branches
-        "NoPrematureLetComputation",      // uncommon pattern
-        "NoRecordPatternInFunctionArgs",  // style preference
+        "NoPrematureLetComputation", // uncommon pattern
+        "NoRecordPatternInFunctionArgs", // style preference
         // Batch 2 rules
         "NoUnusedPatterns",               // uncommon in well-written code
         "CognitiveComplexity",            // well-written packages keep functions short
@@ -263,11 +263,11 @@ fn every_rule_fires_on_real_code() {
         "NoUnoptimizedRecursion",         // uncommon pattern
         "NoRecursiveUpdate",              // only applies to TEA apps with `update`
         // Port rules
-        "NoDuplicatePorts",               // requires project context with multiple port modules
-        "NoUnsafePorts",                  // requires port declarations (rare in packages)
-        "NoInconsistentAliases",          // requires per-rule config to do anything
-        "NoUnusedDependencies",           // requires elm.json (not available in test fixtures)
-        "NoShadowing",                    // well-written packages avoid shadowing
+        "NoDuplicatePorts", // requires project context with multiple port modules
+        "NoUnsafePorts",    // requires port declarations (rare in packages)
+        "NoInconsistentAliases", // requires per-rule config to do anything
+        "NoUnusedDependencies", // requires elm.json (not available in test fixtures)
+        "NoShadowing",      // well-written packages avoid shadowing
     ];
 
     // If no fixture files are available, skip gracefully.
@@ -344,10 +344,7 @@ fn each_rule_fires_on_something() {
             "NoBoolOperatorSimplify",
             "module T exposing (..)\n\nx = y && True",
         ),
-        (
-            "NoEmptyListConcat",
-            "module T exposing (..)\n\nx = [] ++ y",
-        ),
+        ("NoEmptyListConcat", "module T exposing (..)\n\nx = [] ++ y"),
         (
             "NoListLiteralConcat",
             "module T exposing (..)\n\nx = [ 1 ] ++ [ 2 ]",
@@ -393,18 +390,12 @@ fn each_rule_fires_on_something() {
             "module T exposing (..)\n\nimport Result\n\nx = Result.map f (Err e)",
         ),
         // New rules
-        (
-            "NoUnusedParameters",
-            "module T exposing (..)\n\nfoo x = 1",
-        ),
+        ("NoUnusedParameters", "module T exposing (..)\n\nfoo x = 1"),
         (
             "NoUnusedCustomTypeConstructorArgs",
             "module T exposing (..)\n\ntype Msg = Click Int\n\nfoo msg =\n    case msg of\n        Click _ ->\n            1",
         ),
-        (
-            "NoExposingAll",
-            "module T exposing (..)\n\nfoo = 1",
-        ),
+        ("NoExposingAll", "module T exposing (..)\n\nfoo = 1"),
         (
             "NoImportExposingAll",
             "module T exposing (foo)\n\nimport Html exposing (..)\n\nfoo = Html.div",
@@ -617,10 +608,8 @@ foo x =
     // Test NoInconsistentAliases separately — it needs per-rule config to activate.
     {
         let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-        let config: toml::Value = toml::from_str(
-            r#"aliases = { "Json.Decode" = "Decode" }"#,
-        )
-        .unwrap();
+        let config: toml::Value =
+            toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).unwrap();
         rule.configure(&config).unwrap();
 
         let source = "module T exposing (..)\n\nimport Json.Decode as JD\n\nx = JD.string";

@@ -43,8 +43,7 @@ impl Visit for ParenVisitor<'_> {
                     | Expr::RecordAccessFunction(_)
             );
             if is_simple {
-                let inner_text =
-                    &self.source[inner.span.start.offset..inner.span.end.offset];
+                let inner_text = &self.source[inner.span.start.offset..inner.span.end.offset];
                 self.errors.push(LintError {
                     rule: "NoUnnecessaryParens",
                     severity: Severity::Warning,

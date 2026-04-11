@@ -128,18 +128,12 @@ fn resolve_elm_home() -> Option<PathBuf> {
         dirs_fallback_home()?.join(".elm")
     };
 
-    if path.is_dir() {
-        Some(path)
-    } else {
-        None
-    }
+    if path.is_dir() { Some(path) } else { None }
 }
 
 /// Get the user's home directory without pulling in the `dirs` crate.
 fn dirs_fallback_home() -> Option<PathBuf> {
-    env::var("HOME")
-        .ok()
-        .map(PathBuf::from)
+    env::var("HOME").ok().map(PathBuf::from)
 }
 
 /// For each dependency, try to read its `exposed-modules` from the Elm cache.
@@ -227,11 +221,7 @@ fn find_highest_installed_version(pkg_dir: &Path) -> Option<PathBuf> {
 /// Parse a semver string like "1.2.3" into comparable parts.
 fn parse_semver(s: &str) -> Option<Vec<u32>> {
     let parts: Vec<u32> = s.split('.').filter_map(|p| p.parse().ok()).collect();
-    if parts.len() == 3 {
-        Some(parts)
-    } else {
-        None
-    }
+    if parts.len() == 3 { Some(parts) } else { None }
 }
 
 /// Parse the `exposed-modules` field from a package's elm.json.

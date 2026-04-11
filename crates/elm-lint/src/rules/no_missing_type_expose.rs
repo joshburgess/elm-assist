@@ -74,9 +74,7 @@ impl Rule for NoMissingTypeExpose {
                     collect_type_refs(&sig.value.type_annotation, &mut referenced);
 
                     for type_name in &referenced {
-                        if defined_types.contains(type_name)
-                            && !exposed_names.contains(type_name)
-                        {
+                        if defined_types.contains(type_name) && !exposed_names.contains(type_name) {
                             errors.push(LintError {
                                 rule: self.name(),
                                 severity: Severity::Warning,

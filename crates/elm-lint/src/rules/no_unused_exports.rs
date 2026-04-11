@@ -38,8 +38,8 @@ impl Rule for NoUnusedExports {
             let used_internally = info.used_values.contains(name);
 
             if !externally_used && !used_internally {
-                let span = find_exposed_item_span(ctx.module, name)
-                    .unwrap_or(ctx.module.header.span);
+                let span =
+                    find_exposed_item_span(ctx.module, name).unwrap_or(ctx.module.header.span);
                 errors.push(LintError {
                     rule: "NoUnusedExports",
                     severity: Severity::Warning,
@@ -59,8 +59,8 @@ impl Rule for NoUnusedExports {
             let used_internally = info.used_types.contains(name);
 
             if !externally_used && !used_internally {
-                let span = find_exposed_item_span(ctx.module, name)
-                    .unwrap_or(ctx.module.header.span);
+                let span =
+                    find_exposed_item_span(ctx.module, name).unwrap_or(ctx.module.header.span);
                 errors.push(LintError {
                     rule: "NoUnusedExports",
                     severity: Severity::Warning,

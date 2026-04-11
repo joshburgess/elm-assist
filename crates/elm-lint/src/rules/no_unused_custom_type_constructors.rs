@@ -29,8 +29,8 @@ impl Rule for NoUnusedCustomTypeConstructors {
             });
 
             if !is_used {
-                let span = find_constructor_span(ctx.module, ctor_name)
-                    .unwrap_or(ctx.module.header.span);
+                let span =
+                    find_constructor_span(ctx.module, ctor_name).unwrap_or(ctx.module.header.span);
                 errors.push(LintError {
                     rule: "NoUnusedCustomTypeConstructors",
                     severity: Severity::Warning,

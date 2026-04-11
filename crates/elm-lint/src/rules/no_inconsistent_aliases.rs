@@ -12,17 +12,10 @@ use crate::rule::{LintContext, LintError, Rule, Severity};
 /// ```
 ///
 /// Without configuration, this rule does nothing — all aliases are accepted.
+#[derive(Default)]
 pub struct NoInconsistentAliases {
     /// Canonical aliases: module name -> expected alias.
     canonical: HashMap<String, String>,
-}
-
-impl Default for NoInconsistentAliases {
-    fn default() -> Self {
-        Self {
-            canonical: HashMap::new(),
-        }
-    }
 }
 
 impl Rule for NoInconsistentAliases {
@@ -36,9 +29,9 @@ impl Rule for NoInconsistentAliases {
 
     fn configure(&mut self, options: &toml::Value) -> Result<(), String> {
         if let Some(aliases) = options.get("aliases") {
-            let table = aliases
-                .as_table()
-                .ok_or_else(|| "aliases must be a table (e.g. { \"Json.Decode\" = \"Decode\" })".to_string())?;
+            let table = aliases.as_table().ok_or_else(|| {
+                "aliases must be a table (e.g. { \"Json.Decode\" = \"Decode\" })".to_string()
+            })?;
             for (module, alias_val) in table {
                 let alias = alias_val
                     .as_str()
@@ -61,11 +54,7 @@ impl Rule for NoInconsistentAliases {
 
             if let Some(expected_alias) = self.canonical.get(&module_name) {
                 // This module has a canonical alias — check if the import uses it.
-                let actual_alias = imp
-                    .value
-                    .alias
-                    .as_ref()
-                    .map(|a| a.value.join("."));
+                let actual_alias = imp.value.alias.as_ref().map(|a| a.value.join("."));
 
                 let matches = match &actual_alias {
                     Some(alias) => alias == expected_alias,
@@ -83,9 +72,7 @@ impl Rule for NoInconsistentAliases {
                 };
 
                 if !matches {
-                    let actual_display = actual_alias
-                        .as_deref()
-                        .unwrap_or(&module_name);
+                    let actual_display = actual_alias.as_deref().unwrap_or(&module_name);
 
                     errors.push(LintError {
                         rule: "NoInconsistentAliases",

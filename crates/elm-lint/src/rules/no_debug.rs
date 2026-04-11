@@ -28,7 +28,7 @@ impl Rule for NoDebug {
             .into_iter()
             .map(|(span, name)| LintError {
                 rule: self.name(),
-                    severity: Severity::Warning,
+                severity: Severity::Warning,
                 message: format!("`Debug.{name}` should not be used in production code"),
                 span,
                 fix: None,

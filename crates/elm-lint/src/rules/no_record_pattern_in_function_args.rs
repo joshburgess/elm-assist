@@ -31,11 +31,7 @@ impl Rule for NoRecordPatternInFunctionArgs {
     }
 }
 
-fn check_pattern(
-    span: elm_ast::span::Span,
-    pat: &Pattern,
-    errors: &mut Vec<LintError>,
-) {
+fn check_pattern(span: elm_ast::span::Span, pat: &Pattern, errors: &mut Vec<LintError>) {
     match pat {
         Pattern::Record(fields) => {
             let field_names: Vec<&str> = fields.iter().map(|f| f.value.as_str()).collect();

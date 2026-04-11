@@ -67,10 +67,15 @@ impl Visit for NegVisitor<'_> {
                                                 [arg.span.start.offset..arg.span.end.offset];
                                             self.errors.push(LintError {
                                                 rule: "NoNestedNegation",
-                    severity: Severity::Warning,
-                                                message: "Double negation — simplify by removing both".into(),
+                                                severity: Severity::Warning,
+                                                message:
+                                                    "Double negation — simplify by removing both"
+                                                        .into(),
                                                 span: expr.span,
-                                                fix: Some(Fix::replace(expr.span, arg_text.to_string())),
+                                                fix: Some(Fix::replace(
+                                                    expr.span,
+                                                    arg_text.to_string(),
+                                                )),
                                             });
                                         }
                                     }

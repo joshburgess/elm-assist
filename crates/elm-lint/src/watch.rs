@@ -16,9 +16,10 @@ where
         move |res: Result<notify::Event, notify::Error>| {
             if let Ok(event) = res {
                 // Only forward events for .elm files.
-                let is_elm = event.paths.iter().any(|p| {
-                    p.extension().is_some_and(|ext| ext == "elm")
-                });
+                let is_elm = event
+                    .paths
+                    .iter()
+                    .any(|p| p.extension().is_some_and(|ext| ext == "elm"));
                 if is_elm {
                     let _ = tx_clone.send(());
                 }

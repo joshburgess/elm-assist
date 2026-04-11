@@ -21,9 +21,7 @@ impl Rule for NoPrematureLetComputation {
     }
 
     fn check(&self, ctx: &LintContext) -> Vec<LintError> {
-        let mut visitor = Visitor {
-            errors: Vec::new(),
-        };
+        let mut visitor = Visitor { errors: Vec::new() };
         visitor.visit_module(ctx.module);
         visitor.errors
     }
@@ -96,9 +94,7 @@ fn check_let_bindings_in_branches(
         let other_let_names: HashSet<String> = declarations
             .iter()
             .filter_map(|d| match &d.value {
-                LetDeclaration::Function(f) => {
-                    Some(f.declaration.value.name.value.clone())
-                }
+                LetDeclaration::Function(f) => Some(f.declaration.value.name.value.clone()),
                 _ => None,
             })
             .collect();
@@ -109,7 +105,10 @@ fn check_let_bindings_in_branches(
         };
 
         let binding_refs = collect_refs(binding_body);
-        if binding_refs.iter().any(|r| other_let_names.contains(r) && !names.contains(r)) {
+        if binding_refs
+            .iter()
+            .any(|r| other_let_names.contains(r) && !names.contains(r))
+        {
             continue;
         }
 
@@ -159,7 +158,10 @@ fn collect_pattern_names(pat: &Pattern, names: &mut Vec<String>) {
             collect_pattern_names(&head.value, names);
             collect_pattern_names(&tail.value, names);
         }
-        Pattern::As { pattern: inner, name } => {
+        Pattern::As {
+            pattern: inner,
+            name,
+        } => {
             collect_pattern_names(&inner.value, names);
             names.push(name.value.clone());
         }

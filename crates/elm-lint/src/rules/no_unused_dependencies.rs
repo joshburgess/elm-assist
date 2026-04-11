@@ -31,12 +31,7 @@ impl Rule for NoUnusedDependencies {
         // This is a project-level rule — only report from one module to avoid
         // duplicate errors. We pick the alphabetically-first module.
         let my_name = info.module_name.join(".");
-        let first_module = project
-            .modules
-            .keys()
-            .min()
-            .cloned()
-            .unwrap_or_default();
+        let first_module = project.modules.keys().min().cloned().unwrap_or_default();
         if my_name != first_module {
             return Vec::new();
         }
@@ -49,7 +44,8 @@ impl Rule for NoUnusedDependencies {
             }
         }
 
-        let used_packages = packages_used_by_imports(&all_imported_modules, &elm_json.package_modules);
+        let used_packages =
+            packages_used_by_imports(&all_imported_modules, &elm_json.package_modules);
 
         let mut errors = Vec::new();
 

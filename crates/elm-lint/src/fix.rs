@@ -34,9 +34,7 @@ pub fn apply_fixes(source: &str, edits: &[Edit]) -> Result<String, FixError> {
             Edit::Replace { span, replacement } => {
                 (span.start.offset, span.end.offset, replacement.clone())
             }
-            Edit::InsertAfter { span, text } => {
-                (span.end.offset, span.end.offset, text.clone())
-            }
+            Edit::InsertAfter { span, text } => (span.end.offset, span.end.offset, text.clone()),
             Edit::Remove { span } => (span.start.offset, span.end.offset, String::new()),
         })
         .collect();
@@ -126,9 +124,7 @@ mod tests {
     #[test]
     fn single_remove() {
         let source = "hello world";
-        let edits = vec![Edit::Remove {
-            span: span(5, 11),
-        }];
+        let edits = vec![Edit::Remove { span: span(5, 11) }];
         assert_eq!(apply_fixes(source, &edits).unwrap(), "hello");
     }
 
@@ -139,7 +135,10 @@ mod tests {
             span: span(5, 5),
             text: " beautiful".into(),
         }];
-        assert_eq!(apply_fixes(source, &edits).unwrap(), "hello beautiful world");
+        assert_eq!(
+            apply_fixes(source, &edits).unwrap(),
+            "hello beautiful world"
+        );
     }
 
     #[test]
@@ -180,9 +179,7 @@ mod tests {
     #[test]
     fn out_of_bounds_rejected() {
         let source = "hello";
-        let edits = vec![Edit::Remove {
-            span: span(0, 100),
-        }];
+        let edits = vec![Edit::Remove { span: span(0, 100) }];
         assert!(matches!(
             apply_fixes(source, &edits),
             Err(FixError::OutOfBounds)
@@ -198,9 +195,7 @@ mod tests {
     #[test]
     fn remove_line_extends_past_newline() {
         let source = "line1\nline2\nline3";
-        let edit = Edit::Remove {
-            span: span(0, 5),
-        };
+        let edit = Edit::Remove { span: span(0, 5) };
         let extended = remove_line(source, &edit);
         let result = apply_fixes(source, &[extended]).unwrap();
         assert_eq!(result, "line2\nline3");

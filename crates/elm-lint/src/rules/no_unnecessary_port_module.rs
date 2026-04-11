@@ -34,15 +34,14 @@ impl Rule for NoUnnecessaryPortModule {
         }
 
         // Fix: replace "port module Foo exposing (..)" with "module Foo exposing (..)"
-        let header_text = &ctx.source
-            [ctx.module.header.span.start.offset..ctx.module.header.span.end.offset];
+        let header_text =
+            &ctx.source[ctx.module.header.span.start.offset..ctx.module.header.span.end.offset];
 
         let fix = if let Some(port_start) = header_text.find("port") {
             let module_start = header_text[port_start..].find("module");
             if let Some(mod_offset) = module_start {
                 // Reconstruct without "port "
-                let name_text =
-                    &ctx.source[name_node.span.start.offset..name_node.span.end.offset];
+                let name_text = &ctx.source[name_node.span.start.offset..name_node.span.end.offset];
                 let exposing_text =
                     &ctx.source[exposing_node.span.start.offset..exposing_node.span.end.offset];
                 let _ = mod_offset; // used for verification only

@@ -26,8 +26,7 @@ impl Rule for NoUnusedCustomTypeConstructorArgs {
         for decl in &ctx.module.declarations {
             if let Declaration::CustomTypeDeclaration(ct) = &decl.value {
                 for ctor in &ct.constructors {
-                    ctor_arg_counts
-                        .insert(ctor.value.name.value.clone(), ctor.value.args.len());
+                    ctor_arg_counts.insert(ctor.value.name.value.clone(), ctor.value.args.len());
                 }
             }
         }
@@ -56,8 +55,7 @@ impl Rule for NoUnusedCustomTypeConstructorArgs {
                         arg_idx + 1
                     ),
                     // Use the span of the constructor type definition.
-                    span: find_ctor_span(ctx.module, ctor_name)
-                        .unwrap_or(ctx.module.header.span),
+                    span: find_ctor_span(ctx.module, ctor_name).unwrap_or(ctx.module.header.span),
                     fix: None,
                 });
             }
@@ -94,10 +92,7 @@ impl Visitor<'_> {
                 if let Some(&expected_args) = self.ctor_arg_counts.get(name) {
                     if args.len() == expected_args {
                         for (i, arg) in args.iter().enumerate() {
-                            let entry = self
-                                .arg_usage
-                                .entry((name.clone(), i))
-                                .or_insert((0, 0));
+                            let entry = self.arg_usage.entry((name.clone(), i)).or_insert((0, 0));
                             entry.0 += 1;
                             if is_wildcard_pattern(&arg.value) {
                                 entry.1 += 1;

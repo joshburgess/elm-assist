@@ -22,17 +22,14 @@ impl Rule for NoConfusingPrefixOperator {
     }
 
     fn check(&self, ctx: &LintContext) -> Vec<LintError> {
-        let mut visitor = Visitor {
-            errors: Vec::new(),
-        };
+        let mut visitor = Visitor { errors: Vec::new() };
         visitor.visit_module(ctx.module);
         visitor.errors
     }
 }
 
 const NON_COMMUTATIVE_OPS: &[&str] = &[
-    "-", "/", "//", "^", "::", "++", "<|", "|>", ">>", "<<",
-    "<", ">", "<=", ">=", "/=",
+    "-", "/", "//", "^", "::", "++", "<|", "|>", ">>", "<<", "<", ">", "<=", ">=", "/=",
 ];
 
 struct Visitor {

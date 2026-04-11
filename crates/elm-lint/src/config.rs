@@ -82,10 +82,7 @@ impl Config {
         if self.rules.disable.iter().any(|n| n == name) {
             return true;
         }
-        matches!(
-            self.rules.severity.get(name),
-            Some(SeverityValue::Off)
-        )
+        matches!(self.rules.severity.get(name), Some(SeverityValue::Off))
     }
 
     /// Get the configured severity for a rule, if any.
@@ -141,7 +138,10 @@ NoAlwaysIdentity = "off"
         assert!(config.is_rule_disabled("NoAlwaysIdentity"));
 
         assert_eq!(config.severity_for("NoDebug"), Some(Severity::Error));
-        assert_eq!(config.severity_for("NoUnusedImports"), Some(Severity::Warning));
+        assert_eq!(
+            config.severity_for("NoUnusedImports"),
+            Some(Severity::Warning)
+        );
         assert_eq!(config.severity_for("NoAlwaysIdentity"), None);
         assert_eq!(config.severity_for("UnknownRule"), None);
     }
@@ -178,7 +178,10 @@ aliases = { "Json.Decode" = "Decode", "Html.Attributes" = "Attr" }
         let alias_opts = config.rule_options("NoInconsistentAliases").unwrap();
         let aliases = alias_opts.get("aliases").unwrap().as_table().unwrap();
         assert_eq!(aliases.get("Json.Decode").unwrap().as_str(), Some("Decode"));
-        assert_eq!(aliases.get("Html.Attributes").unwrap().as_str(), Some("Attr"));
+        assert_eq!(
+            aliases.get("Html.Attributes").unwrap().as_str(),
+            Some("Attr")
+        );
 
         // Unknown rules have no options.
         assert!(config.rule_options("NoDebug").is_none());

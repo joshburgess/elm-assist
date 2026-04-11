@@ -35,8 +35,7 @@ impl Visit for LetVisitor<'_> {
     fn visit_expr(&mut self, expr: &Spanned<Expr>) {
         if let Expr::LetIn { declarations, body } = &expr.value {
             if declarations.is_empty() {
-                let body_text =
-                    &self.source[body.span.start.offset..body.span.end.offset];
+                let body_text = &self.source[body.span.start.offset..body.span.end.offset];
                 self.errors.push(LintError {
                     rule: "NoEmptyLet",
                     severity: Severity::Warning,

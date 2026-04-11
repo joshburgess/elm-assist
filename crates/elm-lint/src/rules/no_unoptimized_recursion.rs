@@ -56,9 +56,10 @@ impl Rule for NoUnoptimizedRecursion {
 /// Check if an expression contains any call to `name`.
 fn contains_self_call(expr: &Spanned<Expr>, name: &str) -> bool {
     match &expr.value {
-        Expr::FunctionOrValue { module_name, name: n } if module_name.is_empty() && n == name => {
-            true
-        }
+        Expr::FunctionOrValue {
+            module_name,
+            name: n,
+        } if module_name.is_empty() && n == name => true,
         Expr::Application(args) => args.iter().any(|a| contains_self_call(a, name)),
         Expr::OperatorApplication { left, right, .. } => {
             contains_self_call(left, name) || contains_self_call(right, name)
@@ -81,17 +82,13 @@ fn contains_self_call(expr: &Spanned<Expr>, name: &str) -> bool {
         }
         Expr::LetIn { declarations, body } => {
             declarations.iter().any(|d| match &d.value {
-                LetDeclaration::Function(f) => {
-                    contains_self_call(&f.declaration.value.body, name)
-                }
+                LetDeclaration::Function(f) => contains_self_call(&f.declaration.value.body, name),
                 LetDeclaration::Destructuring { body: b, .. } => contains_self_call(b, name),
             }) || contains_self_call(body, name)
         }
         Expr::Lambda { body, .. } => contains_self_call(body, name),
         Expr::Parenthesized(inner) | Expr::Negation(inner) => contains_self_call(inner, name),
-        Expr::Tuple(elems) | Expr::List(elems) => {
-            elems.iter().any(|e| contains_self_call(e, name))
-        }
+        Expr::Tuple(elems) | Expr::List(elems) => elems.iter().any(|e| contains_self_call(e, name)),
         Expr::Record(fields) => fields
             .iter()
             .any(|f| contains_self_call(&f.value.value, name)),
@@ -125,9 +122,7 @@ fn all_calls_in_tail_position(expr: &Spanned<Expr>, name: &str) -> bool {
             else_branch,
         } => {
             // Conditions must not contain recursive calls (not tail position).
-            let conds_ok = branches
-                .iter()
-                .all(|(c, _)| !contains_self_call(c, name));
+            let conds_ok = branches.iter().all(|(c, _)| !contains_self_call(c, name));
             // Branch bodies must have all recursive calls in tail position.
             let bodies_ok = branches
                 .iter()
@@ -149,9 +144,7 @@ fn all_calls_in_tail_position(expr: &Spanned<Expr>, name: &str) -> bool {
         // let..in: only the body is in tail position.
         Expr::LetIn { declarations, body } => {
             let decls_ok = declarations.iter().all(|d| match &d.value {
-                LetDeclaration::Function(f) => {
-                    !contains_self_call(&f.declaration.value.body, name)
-                }
+                LetDeclaration::Function(f) => !contains_self_call(&f.declaration.value.body, name),
                 LetDeclaration::Destructuring { body: b, .. } => !contains_self_call(b, name),
             });
             decls_ok && all_calls_in_tail_position(body, name)

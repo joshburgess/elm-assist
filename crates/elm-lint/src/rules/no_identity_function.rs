@@ -18,9 +18,7 @@ impl Rule for NoIdentityFunction {
     }
 
     fn check(&self, ctx: &LintContext) -> Vec<LintError> {
-        let mut visitor = Visitor {
-            errors: Vec::new(),
-        };
+        let mut visitor = Visitor { errors: Vec::new() };
         visitor.visit_module(ctx.module);
         visitor.errors
     }
@@ -39,7 +37,7 @@ impl Visit for Visitor {
                         if module_name.is_empty() && name == param_name {
                             self.errors.push(LintError {
                                 rule: "NoIdentityFunction",
-                    severity: Severity::Warning,
+                                severity: Severity::Warning,
                                 message: "`\\x -> x` is equivalent to `identity`".into(),
                                 span: expr.span,
                                 fix: Some(Fix::replace(expr.span, "identity".into())),

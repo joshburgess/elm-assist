@@ -51,7 +51,7 @@ impl Visit for Visitor<'_> {
                     (Some(true), Some(false)) => {
                         self.errors.push(LintError {
                             rule: "NoIfTrueFalse",
-                    severity: Severity::Warning,
+                            severity: Severity::Warning,
                             message: "`if x then True else False` is equivalent to `x`".into(),
                             span: expr.span,
                             fix: Some(Fix::replace(expr.span, cond_text.to_string())),
@@ -60,13 +60,10 @@ impl Visit for Visitor<'_> {
                     (Some(false), Some(true)) => {
                         self.errors.push(LintError {
                             rule: "NoIfTrueFalse",
-                    severity: Severity::Warning,
+                            severity: Severity::Warning,
                             message: "`if x then False else True` is equivalent to `not x`".into(),
                             span: expr.span,
-                            fix: Some(Fix::replace(
-                                expr.span,
-                                format!("not ({cond_text})"),
-                            )),
+                            fix: Some(Fix::replace(expr.span, format!("not ({cond_text})"))),
                         });
                     }
                     _ => {}

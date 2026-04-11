@@ -17,9 +17,7 @@ impl Rule for NoMissingTypeAnnotationInLetIn {
     }
 
     fn check(&self, ctx: &LintContext) -> Vec<LintError> {
-        let mut visitor = Visitor {
-            errors: Vec::new(),
-        };
+        let mut visitor = Visitor { errors: Vec::new() };
         visitor.visit_module(ctx.module);
         visitor.errors
     }
@@ -39,9 +37,7 @@ impl Visit for Visitor {
                         self.errors.push(LintError {
                             rule: "NoMissingTypeAnnotationInLetIn",
                             severity: Severity::Warning,
-                            message: format!(
-                                "Let binding `{name}` is missing a type annotation"
-                            ),
+                            message: format!("Let binding `{name}` is missing a type annotation"),
                             span: func.declaration.value.name.span,
                             fix: None,
                         });
