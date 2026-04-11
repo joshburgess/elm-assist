@@ -1,0 +1,27 @@
+{
+  "name": "elm-assist",
+  "version": "0.0.0",
+  "description": "Fast, native Rust toolchain for Elm projects",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joshburgess/elm-assist"
+  },
+  "keywords": ["elm", "lint", "linter", "ast", "refactor"],
+  "bin": {
+    "elm-lint": "bin/elm-lint",
+    "elm-unused": "bin/elm-unused",
+    "elm-deps": "bin/elm-deps",
+    "elm-refactor": "bin/elm-refactor",
+    "elm-search": "bin/elm-search",
+    "elm-assist-lsp": "bin/elm-assist-lsp"
+  },
+  "files": [
+    "install.js",
+    "lib/",
+    "bin/"
+  ],
+  "scripts": {
+    "postinstall": "node install.js"
+  }
+}
