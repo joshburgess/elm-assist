@@ -166,9 +166,13 @@ elm-search "lambda 3"
 
 Language Server Protocol server providing real-time diagnostics and code actions from elm-lint. Works with any LSP-compatible editor.
 
-A VS Code extension is included in `editors/vscode/`.
+Install the [Elm Assist](https://marketplace.visualstudio.com/items?itemName=joshburgess.elm-assist) extension from the VS Code Marketplace, or search "Elm Assist" in the extensions panel.
 
 ## Installation
+
+### VS Code
+
+Install the [Elm Assist](https://marketplace.visualstudio.com/items?itemName=joshburgess.elm-assist) extension from the marketplace. The extension requires the `elm-assist-lsp` binary on your PATH (installed via npm or binary download below).
 
 ### npm (recommended)
 
