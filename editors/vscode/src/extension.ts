@@ -10,7 +10,7 @@ import {
 let client: LanguageClient | undefined;
 
 export async function activate(context: ExtensionContext): Promise<void> {
-  const config = workspace.getConfiguration("elm-lint");
+  const config = workspace.getConfiguration("elm-assist");
 
   if (!config.get<boolean>("enable", true)) {
     return;
@@ -20,7 +20,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
   if (!serverPath) {
     window.showWarningMessage(
-      "elm-assist-lsp binary not found. Install it or set elm-lint.serverPath in settings."
+      "elm-assist-lsp binary not found. Install it or set elm-assist.serverPath in settings."
     );
     return;
   }
@@ -45,8 +45,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
   };
 
   client = new LanguageClient(
-    "elm-lint",
-    "Elm Lint",
+    "elm-assist",
+    "Elm Assist",
     serverOptions,
     clientOptions
   );

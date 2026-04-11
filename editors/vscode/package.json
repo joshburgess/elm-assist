@@ -1,7 +1,7 @@
 {
-  "name": "elm-lint",
-  "displayName": "Elm Lint",
-  "description": "Elm linting with real-time diagnostics and auto-fix code actions, powered by elm-assist-lsp",
+  "name": "elm-assist",
+  "displayName": "Elm Assist",
+  "description": "Elm toolchain with real-time diagnostics and auto-fix code actions, powered by elm-assist-lsp",
   "version": "0.1.0",
   "publisher": "joshburgess",
   "license": "MIT",
@@ -22,17 +22,17 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "Elm Lint",
+      "title": "Elm Assist",
       "properties": {
-        "elm-lint.serverPath": {
+        "elm-assist.serverPath": {
           "type": "string",
           "default": "",
           "description": "Path to the elm-assist-lsp binary. If empty, searches PATH."
         },
-        "elm-lint.enable": {
+        "elm-assist.enable": {
           "type": "boolean",
           "default": true,
-          "description": "Enable or disable the Elm Lint language server."
+          "description": "Enable or disable the Elm Assist language server."
         }
       }
     }
