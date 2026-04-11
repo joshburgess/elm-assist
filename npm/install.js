@@ -1,5 +1,6 @@
 "use strict";
 
+const crypto = require("crypto");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
@@ -58,6 +59,27 @@ async function main() {
 
   console.log(`Downloading elm-assist v${VERSION} for ${target}...`);
   const data = await fetch(url);
+
+  // Verify checksum.
+  const checksumUrl = `https://github.com/${REPO}/releases/download/v${VERSION}/sha256sums.txt`;
+  const archiveName = `elm-assist-v${VERSION}-${target}.${ext}`;
+  try {
+    const checksumFile = (await fetch(checksumUrl)).toString("utf8");
+    const expectedLine = checksumFile.split("\n").find((l) => l.includes(archiveName));
+    if (expectedLine) {
+      const expected = expectedLine.split(/\s+/)[0];
+      const actual = crypto.createHash("sha256").update(data).digest("hex");
+      if (actual !== expected) {
+        console.error(`Checksum mismatch for ${archiveName}!`);
+        console.error(`  expected: ${expected}`);
+        console.error(`  got:      ${actual}`);
+        process.exit(1);
+      }
+      console.log("Checksum verified.");
+    }
+  } catch (_) {
+    console.warn("Could not verify checksum (sha256sums.txt not found). Continuing.");
+  }
 
   const archive = path.join(vendorDir, `elm-assist.${ext}`);
   fs.writeFileSync(archive, data);

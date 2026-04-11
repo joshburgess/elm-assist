@@ -73,8 +73,13 @@ jobs:
         with:
           merge-multiple: true
 
+      - name: Generate checksums
+        run: sha256sum elm-assist-* > sha256sums.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: elm-assist-*
+          files: |
+            elm-assist-*
+            sha256sums.txt
           generate_release_notes: true
