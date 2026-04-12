@@ -1,6 +1,6 @@
 {
   "name": "elm-assist",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fast, native Rust toolchain for Elm projects",
   "license": "MIT OR Apache-2.0",
   "repository": {
