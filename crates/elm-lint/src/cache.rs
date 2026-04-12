@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-const CACHE_FILE: &str = ".elm-lint-cache";
+const CACHE_FILE: &str = ".elm-assist-cache";
 
 /// Serializable cache entry for one file.
 #[derive(Serialize, Deserialize)]
