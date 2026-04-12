@@ -2,7 +2,7 @@
   "name": "elm-assist-lsp",
   "displayName": "Elm Assist LSP",
   "description": "Elm toolchain with real-time diagnostics and auto-fix code actions, powered by elm-assist-lsp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "joshburgess",
   "license": "MIT",
   "repository": {

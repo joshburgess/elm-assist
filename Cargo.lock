@@ -305,7 +305,7 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
 name = "elm-assist-lsp"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "elm-ast",
  "elm-lint",
@@ -319,7 +319,7 @@ dependencies = [
 
 [[package]]
 name = "elm-assist-tui"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "crossterm",
  "elm-ast",
@@ -343,14 +343,14 @@ checksum = "fb3bf906d676d21647c5c0be62d7b8425ca66cc1854198b04b0597bdc7b420e2"
 
 [[package]]
 name = "elm-deps"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "elm-ast",
 ]
 
 [[package]]
 name = "elm-lint"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "ariadne",
  "clap",
@@ -364,21 +364,21 @@ dependencies = [
 
 [[package]]
 name = "elm-refactor"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "elm-ast",
 ]
 
 [[package]]
 name = "elm-search"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "elm-ast",
 ]
 
 [[package]]
 name = "elm-unused"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "elm-ast",
 ]
