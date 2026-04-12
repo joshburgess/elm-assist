@@ -88,7 +88,7 @@ fn diagnostic_has_correct_fields() {
     let diag = convert::lint_error_to_diagnostic(&error);
 
     assert_eq!(diag.severity, Some(DiagnosticSeverity::WARNING));
-    assert_eq!(diag.source, Some("elm-lint".into()));
+    assert_eq!(diag.source, Some("elm-assist".into()));
     assert_eq!(diag.code, Some(NumberOrString::String("TestRule".into())));
     assert_eq!(diag.message, "test message");
     assert_eq!(diag.range.start.line, 4);
@@ -220,7 +220,7 @@ fn parse_error_diagnostic_has_correct_fields() {
     let diag = convert::parse_error_to_diagnostic(&error);
 
     assert_eq!(diag.severity, Some(DiagnosticSeverity::ERROR));
-    assert_eq!(diag.source, Some("elm-lint".into()));
+    assert_eq!(diag.source, Some("elm-assist".into()));
     assert_eq!(
         diag.code,
         Some(NumberOrString::String("parse-error".into()))

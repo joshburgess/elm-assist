@@ -36,7 +36,7 @@ pub fn lint_error_to_diagnostic(error: &LintError) -> Diagnostic {
         range: span_to_range(&error.span),
         severity: Some(severity_to_lsp(error.severity)),
         code: Some(NumberOrString::String(error.rule.to_string())),
-        source: Some("elm-lint".into()),
+        source: Some("elm-assist".into()),
         message: error.message.clone(),
         ..Default::default()
     }
@@ -53,7 +53,7 @@ pub fn parse_error_to_diagnostic(error: &ParseError) -> Diagnostic {
         range: span_to_range(&error.span),
         severity: Some(DiagnosticSeverity::ERROR),
         code: Some(NumberOrString::String("parse-error".into())),
-        source: Some("elm-lint".into()),
+        source: Some("elm-assist".into()),
         message: error.message.clone(),
         ..Default::default()
     }

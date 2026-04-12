@@ -306,7 +306,7 @@ impl LanguageServer for Backend {
                     "not auto-fixable"
                 };
                 let content = format!(
-                    "**{}**\n\n{}\n\n---\n*elm-lint rule — {}*",
+                    "**{}**\n\n{}\n\n---\n*elm-assist rule — {}*",
                     error.rule, info.description, fixable_note
                 );
                 return Ok(Some(Hover {
