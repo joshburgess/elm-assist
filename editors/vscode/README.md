@@ -1,4 +1,4 @@
-# Elm Assist
+# Elm Assist LSP
 
 A fast Elm development extension for VS Code, powered by a native Rust language server.
 
