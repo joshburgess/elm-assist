@@ -97,3 +97,75 @@ pub fn build_graph(modules: &[(String, Vec<String>)]) -> (HashMap<&str, Vec<&str
         .collect();
     (graph, project_modules)
 }
+
+/// Dependency graph statistics.
+#[derive(Debug, Clone)]
+pub struct DepsStats {
+    pub total_modules: usize,
+    pub total_edges: usize,
+    pub avg_imports: f64,
+    pub leaf_count: usize,
+    pub root_count: usize,
+    /// Modules with most imports (afferent coupling), sorted descending.
+    pub most_imports: Vec<(String, usize)>,
+    /// Modules most depended on (efferent coupling), sorted descending.
+    pub most_depended_on: Vec<(String, usize)>,
+    pub cycle_count: usize,
+    pub cycles: Vec<Vec<String>>,
+}
+
+/// Compute dependency statistics from an internal graph.
+pub fn compute_stats(graph: &HashMap<&str, Vec<&str>>) -> DepsStats {
+    let total_modules = graph.len();
+    let total_edges: usize = graph.values().map(|v| v.len()).sum();
+    let avg_imports = if total_modules > 0 {
+        total_edges as f64 / total_modules as f64
+    } else {
+        0.0
+    };
+
+    // Afferent coupling: modules with most imports.
+    let mut import_counts: Vec<(&str, usize)> =
+        graph.iter().map(|(m, deps)| (*m, deps.len())).collect();
+    import_counts.sort_by_key(|(_, c)| std::cmp::Reverse(*c));
+
+    // Efferent coupling: modules most depended on.
+    let mut depended_on: HashMap<&str, usize> = HashMap::new();
+    for deps in graph.values() {
+        for dep in deps {
+            *depended_on.entry(dep).or_default() += 1;
+        }
+    }
+    let mut dep_counts: Vec<(&str, usize)> = depended_on.into_iter().collect();
+    dep_counts.sort_by_key(|(_, c)| std::cmp::Reverse(*c));
+
+    // Leaf modules (no internal imports).
+    let leaf_count = graph.values().filter(|deps| deps.is_empty()).count();
+
+    // Root modules (not imported by anyone).
+    let all_imported: HashSet<&str> = graph.values().flat_map(|v| v.iter().copied()).collect();
+    let root_count = graph.keys().filter(|m| !all_imported.contains(**m)).count();
+
+    let cycles = find_cycles(graph);
+
+    DepsStats {
+        total_modules,
+        total_edges,
+        avg_imports,
+        leaf_count,
+        root_count,
+        most_imports: import_counts
+            .into_iter()
+            .map(|(m, c)| (m.to_string(), c))
+            .collect(),
+        most_depended_on: dep_counts
+            .into_iter()
+            .map(|(m, c)| (m.to_string(), c))
+            .collect(),
+        cycle_count: cycles.len(),
+        cycles: cycles
+            .into_iter()
+            .map(|c| c.into_iter().map(|s| s.to_string()).collect())
+            .collect(),
+    }
+}
