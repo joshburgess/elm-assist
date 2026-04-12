@@ -13,6 +13,29 @@ pub struct Config {
     /// Rule configuration.
     #[serde(default)]
     pub rules: RulesConfig,
+    /// TUI configuration.
+    #[serde(default)]
+    pub tui: TuiConfig,
+}
+
+/// TUI-specific configuration.
+#[derive(Debug, Deserialize)]
+pub struct TuiConfig {
+    /// File watcher debounce interval in milliseconds (default: 200).
+    #[serde(default = "default_debounce_ms")]
+    pub debounce_ms: u64,
+}
+
+fn default_debounce_ms() -> u64 {
+    200
+}
+
+impl Default for TuiConfig {
+    fn default() -> Self {
+        Self {
+            debounce_ms: default_debounce_ms(),
+        }
+    }
 }
 
 /// Rule-level configuration.

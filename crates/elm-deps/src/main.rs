@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use elm_ast::module_header::ModuleHeader;
+use elm_deps::graph;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -89,18 +90,12 @@ fn main() {
     }
     eprintln!();
 
-    // Filter to only project-internal imports.
-    let internal_graph: HashMap<&str, Vec<&str>> = graph
+    // Build graph data for library functions.
+    let module_data: Vec<(String, Vec<String>)> = graph
         .iter()
-        .map(|(mod_name, imports)| {
-            let internal: Vec<&str> = imports
-                .iter()
-                .filter(|imp| project_modules.contains(*imp))
-                .map(|s| s.as_str())
-                .collect();
-            (mod_name.as_str(), internal)
-        })
+        .map(|(name, imports)| (name.clone(), imports.clone()))
         .collect();
+    let (internal_graph, _) = graph::build_graph(&module_data);
 
     match format {
         OutputFormat::Summary => print_summary(&internal_graph, &project_modules),
@@ -122,13 +117,13 @@ enum OutputFormat {
 
 // ── Output formats ───────────────────────────────────────────────────
 
-fn print_summary(graph: &HashMap<&str, Vec<&str>>, project_modules: &HashSet<String>) {
+fn print_summary(dep_graph: &HashMap<&str, Vec<&str>>, project_modules: &HashSet<String>) {
     // Print each module and its internal imports.
-    let mut modules: Vec<&&str> = graph.keys().collect();
+    let mut modules: Vec<&&str> = dep_graph.keys().collect();
     modules.sort();
 
     for module in &modules {
-        let deps = &graph[**module];
+        let deps = &dep_graph[**module];
         if deps.is_empty() {
             println!("{module} (no internal imports)");
         } else {
@@ -142,7 +137,7 @@ fn print_summary(graph: &HashMap<&str, Vec<&str>>, project_modules: &HashSet<Str
     println!();
 
     // Cycles.
-    let cycles = find_cycles(graph);
+    let cycles = graph::find_cycles(dep_graph);
     if cycles.is_empty() {
         println!("No circular dependencies found.");
     } else {
@@ -153,15 +148,15 @@ fn print_summary(graph: &HashMap<&str, Vec<&str>>, project_modules: &HashSet<Str
     }
 
     println!();
-    print_stats(graph, project_modules);
+    print_stats(dep_graph, project_modules);
 }
 
-fn print_dot(graph: &HashMap<&str, Vec<&str>>) {
+fn print_dot(dep_graph: &HashMap<&str, Vec<&str>>) {
     println!("digraph elm_deps {{");
     println!("  rankdir=LR;");
     println!("  node [shape=box, style=filled, fillcolor=lightblue];");
 
-    let mut modules: Vec<&&str> = graph.keys().collect();
+    let mut modules: Vec<&&str> = dep_graph.keys().collect();
     modules.sort();
 
     for module in &modules {
@@ -171,7 +166,7 @@ fn print_dot(graph: &HashMap<&str, Vec<&str>>) {
 
     for module in &modules {
         let safe_from = module.replace('.', "_");
-        for dep in &graph[**module] {
+        for dep in &dep_graph[**module] {
             let safe_to = dep.replace('.', "_");
             println!("  {safe_from} -> {safe_to};");
         }
@@ -180,21 +175,21 @@ fn print_dot(graph: &HashMap<&str, Vec<&str>>) {
     println!("}}");
 }
 
-fn print_mermaid(graph: &HashMap<&str, Vec<&str>>) {
+fn print_mermaid(dep_graph: &HashMap<&str, Vec<&str>>) {
     println!("graph LR");
 
-    let mut modules: Vec<&&str> = graph.keys().collect();
+    let mut modules: Vec<&&str> = dep_graph.keys().collect();
     modules.sort();
 
     for module in &modules {
-        for dep in &graph[**module] {
+        for dep in &dep_graph[**module] {
             println!("  {module} --> {dep}");
         }
     }
 }
 
-fn print_cycles(graph: &HashMap<&str, Vec<&str>>) {
-    let cycles = find_cycles(graph);
+fn print_cycles(dep_graph: &HashMap<&str, Vec<&str>>) {
+    let cycles = graph::find_cycles(dep_graph);
     if cycles.is_empty() {
         println!("No circular dependencies found.");
     } else {
@@ -205,161 +200,51 @@ fn print_cycles(graph: &HashMap<&str, Vec<&str>>) {
     }
 }
 
-fn print_stats(graph: &HashMap<&str, Vec<&str>>, _project_modules: &HashSet<String>) {
-    let total = graph.len();
-    let total_edges: usize = graph.values().map(|v| v.len()).sum();
-
-    // Modules with most imports (afferent coupling).
-    let mut import_counts: Vec<(&str, usize)> =
-        graph.iter().map(|(m, deps)| (*m, deps.len())).collect();
-    import_counts.sort_by_key(|(_, c)| std::cmp::Reverse(*c));
-
-    // Modules most depended on (efferent coupling).
-    let mut depended_on: HashMap<&str, usize> = HashMap::new();
-    for deps in graph.values() {
-        for dep in deps {
-            *depended_on.entry(dep).or_default() += 1;
-        }
-    }
-    let mut dep_counts: Vec<(&str, usize)> = depended_on.into_iter().collect();
-    dep_counts.sort_by_key(|(_, c)| std::cmp::Reverse(*c));
-
-    // Leaf modules (no internal imports).
-    let leaves: Vec<&&str> = graph
-        .iter()
-        .filter(|(_, deps)| deps.is_empty())
-        .map(|(m, _)| m)
-        .collect();
-
-    // Root modules (not imported by anyone).
-    let all_imported: HashSet<&str> = graph.values().flat_map(|v| v.iter().copied()).collect();
-    let roots: Vec<&&str> = graph
-        .keys()
-        .filter(|m| !all_imported.contains(**m))
-        .collect();
+fn print_stats(dep_graph: &HashMap<&str, Vec<&str>>, _project_modules: &HashSet<String>) {
+    let stats = graph::compute_stats(dep_graph);
 
     println!("Dependency statistics:");
-    println!("  {total} modules, {total_edges} internal edges");
-    if total > 0 {
-        println!(
-            "  {:.1} avg imports per module",
-            total_edges as f64 / total as f64
-        );
+    println!(
+        "  {} modules, {} internal edges",
+        stats.total_modules, stats.total_edges
+    );
+    if stats.total_modules > 0 {
+        println!("  {:.1} avg imports per module", stats.avg_imports);
     }
-    println!("  {} leaf modules (no internal imports)", leaves.len());
-    println!("  {} root modules (not imported by others)", roots.len());
+    println!("  {} leaf modules (no internal imports)", stats.leaf_count);
+    println!(
+        "  {} root modules (not imported by others)",
+        stats.root_count
+    );
 
-    if !import_counts.is_empty() {
+    let top_imports: Vec<_> = stats
+        .most_imports
+        .iter()
+        .filter(|(_, c)| *c > 0)
+        .take(5)
+        .collect();
+    if !top_imports.is_empty() {
         println!();
         println!("Most imports (highest afferent coupling):");
-        for (m, c) in import_counts.iter().take(5) {
-            if *c > 0 {
-                println!("  {c:>3} {m}");
-            }
-        }
-    }
-
-    if !dep_counts.is_empty() {
-        println!();
-        println!("Most depended on (highest efferent coupling):");
-        for (m, c) in dep_counts.iter().take(5) {
+        for (m, c) in &top_imports {
             println!("  {c:>3} {m}");
         }
     }
 
-    let cycles = find_cycles(graph);
+    if !stats.most_depended_on.is_empty() {
+        println!();
+        println!("Most depended on (highest efferent coupling):");
+        for (m, c) in stats.most_depended_on.iter().take(5) {
+            println!("  {c:>3} {m}");
+        }
+    }
+
     println!();
-    if cycles.is_empty() {
+    if stats.cycle_count == 0 {
         println!("No circular dependencies.");
     } else {
-        println!("{} circular dependency chain(s).", cycles.len());
+        println!("{} circular dependency chain(s).", stats.cycle_count);
     }
-}
-
-// ── Cycle detection ──────────────────────────────────────────────────
-
-fn find_cycles<'a>(graph: &HashMap<&'a str, Vec<&'a str>>) -> Vec<Vec<&'a str>> {
-    let mut visited: HashSet<&str> = HashSet::new();
-    let mut on_stack: HashSet<&str> = HashSet::new();
-    let mut path: Vec<&str> = Vec::new();
-    let mut cycles: Vec<Vec<&str>> = Vec::new();
-
-    let mut modules: Vec<&&str> = graph.keys().collect();
-    modules.sort();
-
-    for module in modules {
-        if !visited.contains(*module) {
-            dfs(
-                module,
-                graph,
-                &mut visited,
-                &mut on_stack,
-                &mut path,
-                &mut cycles,
-            );
-        }
-    }
-
-    // Deduplicate cycles (same cycle can be found from different starting points).
-    let mut unique: Vec<Vec<&str>> = Vec::new();
-    for cycle in cycles {
-        let normalized = normalize_cycle(&cycle);
-        if !unique.iter().any(|c| normalize_cycle(c) == normalized) {
-            unique.push(cycle);
-        }
-    }
-
-    unique
-}
-
-fn dfs<'a>(
-    node: &'a str,
-    graph: &HashMap<&'a str, Vec<&'a str>>,
-    visited: &mut HashSet<&'a str>,
-    on_stack: &mut HashSet<&'a str>,
-    path: &mut Vec<&'a str>,
-    cycles: &mut Vec<Vec<&'a str>>,
-) {
-    visited.insert(node);
-    on_stack.insert(node);
-    path.push(node);
-
-    if let Some(deps) = graph.get(node) {
-        for dep in deps {
-            if !visited.contains(dep) {
-                dfs(dep, graph, visited, on_stack, path, cycles);
-            } else if on_stack.contains(dep) {
-                // Found a cycle. Extract it from the path.
-                if let Some(start) = path.iter().position(|n| n == dep) {
-                    let mut cycle: Vec<&str> = path[start..].to_vec();
-                    cycle.push(dep); // close the loop
-                    cycles.push(cycle);
-                }
-            }
-        }
-    }
-
-    path.pop();
-    on_stack.remove(node);
-}
-
-fn normalize_cycle<'a>(cycle: &[&'a str]) -> Vec<&'a str> {
-    if cycle.len() <= 1 {
-        return cycle.to_vec();
-    }
-    // Remove the closing duplicate.
-    let core = &cycle[..cycle.len() - 1];
-    // Rotate so the lexicographically smallest element is first.
-    let min_pos = core
-        .iter()
-        .enumerate()
-        .min_by_key(|(_, n)| **n)
-        .map(|(i, _)| i)
-        .unwrap_or(0);
-    let mut normalized: Vec<&str> = core[min_pos..].to_vec();
-    normalized.extend_from_slice(&core[..min_pos]);
-    normalized.push(normalized[0]); // close the loop
-    normalized
 }
 
 // ── File discovery ───────────────────────────────────────────────────

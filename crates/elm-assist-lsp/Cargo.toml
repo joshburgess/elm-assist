@@ -1,12 +1,12 @@
 [package]
 name = "elm-assist-lsp"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "Language Server Protocol server for Elm linting"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-elm-ast = "0.1.1"
+elm-ast = "0.1.3"
 elm-lint = { path = "../elm-lint" }
 tower-lsp = "0.20"
 tokio = { version = "1", features = ["full"] }

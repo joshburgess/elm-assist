@@ -92,7 +92,7 @@ async function main() {
   } else {
     execSync(`tar xzf "${archive}" -C "${vendorDir}"`, { stdio: "inherit" });
     // Ensure binaries are executable
-    const bins = ["elm-lint", "elm-unused", "elm-deps", "elm-refactor", "elm-search", "elm-assist-lsp"];
+    const bins = ["elm-lint", "elm-unused", "elm-deps", "elm-refactor", "elm-search", "elm-assist-lsp", "elm-assist-tui"];
     for (const bin of bins) {
       const p = path.join(vendorDir, bin);
       if (fs.existsSync(p)) fs.chmodSync(p, 0o755);

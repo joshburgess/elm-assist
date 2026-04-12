@@ -3,19 +3,15 @@
 use std::collections::HashMap;
 use std::fs;
 use std::io::{self, BufRead, Write};
-use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::path::Path;
 
 use clap::Parser;
-use rayon::prelude::*;
 
-use elm_lint::cache::{self, LintCache};
-use elm_lint::collect::collect_module_info;
 use elm_lint::config::Config;
-use elm_lint::elm_json;
 use elm_lint::fix::apply_fixes;
 use elm_lint::output;
-use elm_lint::rule::{self, LintContext, ProjectContext};
+use elm_lint::pipeline;
+use elm_lint::rule;
 use elm_lint::rules;
 use elm_lint::watch;
 
@@ -198,9 +194,7 @@ fn main() {
 
 // ── Lint pipeline ──────────────────────────────────────────────────
 
-/// Run the full lint pipeline: discover files, parse in parallel, collect module
-/// info, build project context, run rules in parallel, report. Returns total
-/// error count and the collected data (for fix application).
+/// Run the full lint pipeline via the library, then report results.
 fn run_lint(
     dir: &str,
     active_rules: &[&dyn rule::Rule],
@@ -211,265 +205,38 @@ fn run_lint(
     HashMap<String, Vec<rule::LintError>>,
     HashMap<String, String>,
 ) {
-    let start = Instant::now();
+    let result = pipeline::run_full(dir, active_rules, config);
 
-    let files = find_elm_files(dir);
-    if files.is_empty() {
+    if result.files_linted == 0 {
         eprintln!("No .elm files found in '{dir}'.");
         return (0, HashMap::new(), HashMap::new());
     }
 
-    // Phase 0: Read files and compute hashes in parallel.
-    let file_contents: Vec<(PathBuf, String)> = files
-        .par_iter()
-        .filter_map(|file| {
-            let source = fs::read_to_string(file).ok()?;
-            Some((file.clone(), source))
-        })
-        .collect();
-
-    let file_hashes: HashMap<String, u64> = file_contents
-        .iter()
-        .map(|(path, source)| {
-            (
-                path.display().to_string(),
-                cache::hash_contents(source.as_bytes()),
-            )
-        })
-        .collect();
-
-    // Check cache.
-    let rule_names: Vec<String> = active_rules.iter().map(|r| r.name().to_string()).collect();
-    let lint_cache = LintCache::load(Path::new(dir), rule_names);
-
-    if lint_cache.is_valid_for(&file_hashes) {
-        let elapsed = start.elapsed();
-        let cached_errors = lint_cache.get_all_errors();
-
-        // Read sources for fix application (only files with errors).
-        let mut sources: HashMap<String, String> = HashMap::new();
-        for (path, source) in &file_contents {
-            sources.insert(path.display().to_string(), source.clone());
-        }
-
-        // Convert cached errors back to LintErrors for reporting.
-        let file_errors = cached_to_lint_errors(&cached_errors);
-
-        eprintln!(
-            "Linted {} files with {} rules in {:.1}ms (cached)",
-            file_contents.len(),
-            active_rules.len(),
-            elapsed.as_secs_f64() * 1000.0,
-        );
-
-        let total_errors: usize = file_errors.values().map(|v| v.len()).sum();
-        output::report(
-            format,
-            &file_errors,
-            &sources,
-            file_contents.len(),
-            active_rules.len(),
-        );
-        output::report_summary(format, &file_errors);
-
-        return (total_errors, file_errors, sources);
-    }
-
-    // Phase 1: Parse in parallel.
-    let parse_results: Vec<Result<(String, String, elm_ast::file::ElmModule, String), String>> =
-        file_contents
-            .into_iter()
-            .map(|(path, source)| {
-                let path_str = path.display().to_string();
-                match elm_ast::parse(&source) {
-                    Ok(module) => {
-                        let mod_name = extract_module_name(&module);
-                        Ok((path_str, mod_name, module, source))
-                    }
-                    Err(errors) => Err(format!("{}: {}", path_str, errors[0])),
-                }
-            })
-            .collect();
-
-    // Split results (sequential, cheap).
-    let mut parsed: Vec<(String, String, elm_ast::file::ElmModule, String)> = Vec::new();
-    let mut project_modules = Vec::new();
-    let mut parse_errors = 0;
-
-    for result in parse_results {
-        match result {
-            Ok((path, mod_name, module, source)) => {
-                project_modules.push(mod_name.clone());
-                parsed.push((path, mod_name, module, source));
-            }
-            Err(msg) => {
-                eprintln!("  warning: {msg}");
-                parse_errors += 1;
-            }
-        }
-    }
-
-    // Phase 2: Collect ModuleInfo in parallel.
-    let module_infos: HashMap<String, elm_lint::collect::ModuleInfo> = parsed
-        .par_iter()
-        .map(|(_path, mod_name, module, _source)| (mod_name.clone(), collect_module_info(module)))
-        .collect();
-
-    // Load elm.json for dependency checking.
-    let elm_json_info = elm_json::load_elm_json(Path::new(dir)).ok();
-
-    // Phase 3: Build ProjectContext (sequential, single-shot aggregation).
-    let project_context = ProjectContext::build_with_elm_json(module_infos, elm_json_info);
-
-    // Phase 4: Run all rules on all files in parallel.
-    let results: Vec<(String, String, Vec<rule::LintError>)> = parsed
-        .par_iter()
-        .map(|(file_path, mod_name, module, source)| {
-            let ctx = LintContext {
-                module,
-                source,
-                file_path,
-                project_modules: &project_modules,
-                module_info: project_context.modules.get(mod_name),
-                project: Some(&project_context),
-            };
-
-            let mut file_lint_errors = Vec::new();
-            for rule in active_rules {
-                let mut errors = rule.check(&ctx);
-                let severity = config
-                    .severity_for(rule.name())
-                    .unwrap_or(rule.default_severity());
-                for err in &mut errors {
-                    err.severity = severity;
-                }
-                file_lint_errors.extend(errors);
-            }
-
-            (file_path.clone(), source.clone(), file_lint_errors)
-        })
-        .collect();
-
-    let elapsed = start.elapsed();
-
-    // Assemble results.
-    let mut file_errors: HashMap<String, Vec<rule::LintError>> = HashMap::new();
-    let mut sources: HashMap<String, String> = HashMap::new();
-    for (path, source, errors) in results {
-        if !errors.is_empty() {
-            file_errors.insert(path.clone(), errors);
-        }
-        sources.insert(path, source);
-    }
-
-    // Save cache.
-    let cached_errors = lint_errors_to_cached(&file_errors);
-    lint_cache.save(&file_hashes, &cached_errors);
-
+    let cache_note = if result.cached { " (cached)" } else { "" };
     eprintln!(
-        "Linted {} files with {} rules in {:.1}ms",
-        parsed.len(),
-        active_rules.len(),
-        elapsed.as_secs_f64() * 1000.0,
+        "Linted {} files with {} rules in {:.1}ms{cache_note}",
+        result.files_linted,
+        result.rules_active,
+        result.elapsed.as_secs_f64() * 1000.0,
     );
-    if parse_errors > 0 {
-        eprintln!("  ({parse_errors} files had parse errors and were skipped)");
+    if result.parse_error_count > 0 {
+        eprintln!(
+            "  ({} files had parse errors and were skipped)",
+            result.parse_error_count
+        );
     }
 
-    let total_errors: usize = file_errors.values().map(|v| v.len()).sum();
-
-    // Report findings.
     output::report(
         format,
-        &file_errors,
-        &sources,
-        parsed.len(),
-        active_rules.len(),
+        &result.file_errors,
+        &result.sources,
+        result.files_linted,
+        result.rules_active,
     );
-    output::report_summary(format, &file_errors);
+    output::report_summary(format, &result.file_errors);
 
-    (total_errors, file_errors, sources)
-}
-
-/// Convert LintErrors to cached representation.
-fn lint_errors_to_cached(
-    file_errors: &HashMap<String, Vec<rule::LintError>>,
-) -> HashMap<String, Vec<cache::CachedError>> {
-    file_errors
-        .iter()
-        .map(|(path, errors)| {
-            let cached: Vec<cache::CachedError> = errors
-                .iter()
-                .map(|e| cache::CachedError {
-                    rule: e.rule.to_string(),
-                    message: e.message.clone(),
-                    severity: match e.severity {
-                        rule::Severity::Error => "error".into(),
-                        rule::Severity::Warning => "warning".into(),
-                    },
-                    start_line: e.span.start.line,
-                    start_col: e.span.start.column,
-                    start_offset: e.span.start.offset,
-                    end_line: e.span.end.line,
-                    end_col: e.span.end.column,
-                    end_offset: e.span.end.offset,
-                    fixable: e.fix.is_some(),
-                })
-                .collect();
-            (path.clone(), cached)
-        })
-        .collect()
-}
-
-/// Convert cached errors back to LintErrors for reporting.
-/// Note: cached errors don't carry Fix data, so --fix won't work from cache.
-fn cached_to_lint_errors(
-    cached: &HashMap<String, Vec<cache::CachedError>>,
-) -> HashMap<String, Vec<rule::LintError>> {
-    cached
-        .iter()
-        .map(|(path, errors)| {
-            let lint_errors: Vec<rule::LintError> = errors
-                .iter()
-                .map(|e| rule::LintError {
-                    rule: leak_str(&e.rule),
-                    severity: match e.severity.as_str() {
-                        "error" => rule::Severity::Error,
-                        _ => rule::Severity::Warning,
-                    },
-                    message: e.message.clone(),
-                    span: elm_ast::span::Span {
-                        start: elm_ast::span::Position {
-                            offset: e.start_offset,
-                            line: e.start_line,
-                            column: e.start_col,
-                        },
-                        end: elm_ast::span::Position {
-                            offset: e.end_offset,
-                            line: e.end_line,
-                            column: e.end_col,
-                        },
-                    },
-                    fix: None, // Fixes are not cached.
-                })
-                .collect();
-            (path.clone(), lint_errors)
-        })
-        .collect()
-}
-
-/// Leak a String to get a &'static str. Used for cached rule names since
-/// LintError.rule is &'static str. Only used for cache hits (bounded count).
-fn leak_str(s: &str) -> &'static str {
-    Box::leak(s.to_string().into_boxed_str())
-}
-
-fn extract_module_name(module: &elm_ast::file::ElmModule) -> String {
-    match &module.header.value {
-        elm_ast::module_header::ModuleHeader::Normal { name, .. }
-        | elm_ast::module_header::ModuleHeader::Port { name, .. }
-        | elm_ast::module_header::ModuleHeader::Effect { name, .. } => name.value.join("."),
-    }
+    let total: usize = result.file_errors.values().map(|v| v.len()).sum();
+    (total, result.file_errors, result.sources)
 }
 
 // ── Fix dry-run ───────────────────────────────────────────────────
@@ -501,7 +268,20 @@ fn show_fix_diffs(
                         "--- {}:{}:{} [{}] {}",
                         path, err.span.start.line, err.span.start.column, err.rule, err.message
                     );
-                    print_unified_diff(source, &fixed);
+                    let hunks = pipeline::compute_diff(source, &fixed);
+                    for hunk in &hunks {
+                        println!(
+                            "@@ -{},{} +{},{} @@",
+                            hunk.old_start, hunk.old_count, hunk.new_start, hunk.new_count,
+                        );
+                        for line in &hunk.lines {
+                            match line {
+                                pipeline::DiffLine::Context(l) => println!(" {l}"),
+                                pipeline::DiffLine::Removed(l) => println!("-{l}"),
+                                pipeline::DiffLine::Added(l) => println!("+{l}"),
+                            }
+                        }
+                    }
                     println!();
                 }
                 Err(e) => {
@@ -518,67 +298,6 @@ fn show_fix_diffs(
         println!("{total_fixable} fixes available. Run with --fix-all to apply.");
     } else {
         println!("No auto-fixable findings.");
-    }
-}
-
-/// Print a minimal unified diff between two strings, showing only changed
-/// lines with 2 lines of surrounding context.
-fn print_unified_diff(old: &str, new: &str) {
-    let old_lines: Vec<&str> = old.lines().collect();
-    let new_lines: Vec<&str> = new.lines().collect();
-
-    // Find common prefix and suffix to narrow the diff region.
-    let common_prefix = old_lines
-        .iter()
-        .zip(new_lines.iter())
-        .take_while(|(a, b)| a == b)
-        .count();
-
-    let common_suffix = old_lines
-        .iter()
-        .rev()
-        .zip(new_lines.iter().rev())
-        .take_while(|(a, b)| a == b)
-        .count()
-        .min(old_lines.len() - common_prefix)
-        .min(new_lines.len() - common_prefix);
-
-    let old_changed_end = old_lines.len() - common_suffix;
-    let new_changed_end = new_lines.len() - common_suffix;
-
-    if common_prefix == old_changed_end && common_prefix == new_changed_end {
-        return; // No differences.
-    }
-
-    // Context: 2 lines before and after.
-    let ctx = 2;
-    let ctx_start = common_prefix.saturating_sub(ctx);
-    let ctx_end_old = (old_changed_end + ctx).min(old_lines.len());
-    let ctx_end_new = (new_changed_end + ctx).min(new_lines.len());
-
-    println!(
-        "@@ -{},{} +{},{} @@",
-        ctx_start + 1,
-        ctx_end_old - ctx_start,
-        ctx_start + 1,
-        ctx_end_new - ctx_start,
-    );
-
-    // Context before.
-    for line in &old_lines[ctx_start..common_prefix] {
-        println!(" {line}");
-    }
-    // Removed lines.
-    for line in &old_lines[common_prefix..old_changed_end] {
-        println!("-{line}");
-    }
-    // Added lines.
-    for line in &new_lines[common_prefix..new_changed_end] {
-        println!("+{line}");
-    }
-    // Context after.
-    for line in &old_lines[old_changed_end..ctx_end_old] {
-        println!(" {line}");
     }
 }
 
@@ -670,26 +389,4 @@ fn apply_all_fixes(
     }
 
     total_applied
-}
-
-// ── File discovery ─────────────────────────────────────────────────
-
-fn find_elm_files(dir: &str) -> Vec<PathBuf> {
-    let mut files = Vec::new();
-    collect_elm_files(&PathBuf::from(dir), &mut files);
-    files.sort();
-    files
-}
-
-fn collect_elm_files(dir: &Path, files: &mut Vec<PathBuf>) {
-    if let Ok(entries) = fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                collect_elm_files(&path, files);
-            } else if path.extension().is_some_and(|ext| ext == "elm") {
-                files.push(path);
-            }
-        }
-    }
 }
