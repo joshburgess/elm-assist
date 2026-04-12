@@ -815,6 +815,31 @@ fn fix_list_literal_concat() {
     assert!(!fixed.contains("++"));
 }
 
+#[test]
+fn no_list_literal_concat_skips_empty_operand() {
+    // `[] ++ [1, 2, 3]` is handled by NoEmptyListConcat, which produces an
+    // identical replacement over the identical span. If NoListLiteralConcat
+    // also reported it, `apply_fixes` would reject the batch with
+    // "overlapping edits" and silently drop every fix in the file.
+    let empty_left = lint_count(
+        "module T exposing (..)\n\nx = [] ++ [ 1, 2, 3 ]",
+        &rules::no_list_literal_concat::NoListLiteralConcat,
+    );
+    assert_eq!(empty_left, 0, "should not report on empty left operand");
+
+    let empty_right = lint_count(
+        "module T exposing (..)\n\nx = [ 1, 2, 3 ] ++ []",
+        &rules::no_list_literal_concat::NoListLiteralConcat,
+    );
+    assert_eq!(empty_right, 0, "should not report on empty right operand");
+
+    let both_empty = lint_count(
+        "module T exposing (..)\n\nx = [] ++ []",
+        &rules::no_list_literal_concat::NoListLiteralConcat,
+    );
+    assert_eq!(both_empty, 0, "should not report when both sides are empty");
+}
+
 // ── NoPipelineSimplify ──────────────────────────────────────────────
 
 #[test]

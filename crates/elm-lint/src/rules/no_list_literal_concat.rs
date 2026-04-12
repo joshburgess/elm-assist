@@ -44,11 +44,12 @@ impl Visit for Visitor<'_> {
                 if let (Expr::List(left_elems), Expr::List(right_elems)) =
                     (&left.value, &right.value)
                 {
-                    // Both sides are list literals — merge them.
-                    // Skip if both are empty (that's NoEmptyListConcat territory).
-                    if left_elems.is_empty() && right_elems.is_empty() {
-                        // Let NoEmptyListConcat handle this.
-                    } else if !left_elems.is_empty() || !right_elems.is_empty() {
+                    // If either side is empty, it's NoEmptyListConcat territory —
+                    // reporting here too would produce two diagnostics with
+                    // identical spans and identical replacements, which then
+                    // collide in `apply_fixes` as "overlapping edits" and cause
+                    // the whole file's batch to be dropped.
+                    if !left_elems.is_empty() && !right_elems.is_empty() {
                         let all_elems: Vec<&str> = left_elems
                             .iter()
                             .chain(right_elems.iter())
