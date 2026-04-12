@@ -225,9 +225,9 @@ dependencies = [
 
 [[package]]
 name = "elm-ast"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e196311efaf92239bc2ceb20b8440e59001a2394b16974abdd9186b0e5aa5b3"
+checksum = "1101e0e4e8963ec68e8913f99a37699a4f445d9bbcf19d34426e98b5327921db"
 
 [[package]]
 name = "elm-deps"

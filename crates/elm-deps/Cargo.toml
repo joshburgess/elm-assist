@@ -6,4 +6,4 @@ description = "Module dependency graph analyzer for Elm projects"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-elm-ast = "0.1.0"
+elm-ast = "0.1.1"
