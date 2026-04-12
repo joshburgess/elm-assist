@@ -6,6 +6,16 @@ Built on [elm-ast](https://crates.io/crates/elm-ast), a complete Elm 0.19.1 pars
 
 ## Tools
 
+### elm-assist-tui
+
+Interactive terminal dashboard that unifies every tool in the toolchain into one live view. Browse diagnostics, step through fix previews with unified diffs, explore the dependency tree, hunt dead code, and run semantic searches — all without leaving the terminal. File watching re-runs analyses automatically as you edit.
+
+```
+elm-assist-tui [src-directory]
+```
+
+Keybindings: `1` dashboard, `2` lint browser, `3` deps graph, `4` dead code, `5` search, `f` enter fix review on selected lint row, `?` help overlay, `q` quit.
+
 ### elm-lint
 
 Fast Elm linter with **54 built-in rules** and **25 auto-fixes**. Covers the most popular elm-review rule packages without the plugin system, Node.js dependency, or Elm runtime.
@@ -197,6 +207,7 @@ cargo install --path crates/elm-deps
 cargo install --path crates/elm-refactor
 cargo install --path crates/elm-search
 cargo install --path crates/elm-assist-lsp
+cargo install --path crates/elm-assist-tui
 ```
 
 ## License
