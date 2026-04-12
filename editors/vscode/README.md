@@ -2,7 +2,7 @@
 
 A fast Elm development extension for VS Code, powered by a native Rust language server.
 
-Real-time diagnostics, auto-fix code actions, and hover documentation for **54 built-in lint rules** — no Node.js runtime, no Elm compiler dependency, no plugin system to configure.
+Real-time diagnostics, auto-fix code actions, and hover documentation for **54 built-in lint rules**. No Node.js runtime, no Elm compiler dependency, no plugin system to configure.
 
 ## Features
 
@@ -109,17 +109,17 @@ threshold = 20
 aliases = { "Json.Decode" = "Decode", "Json.Encode" = "Encode" }
 ```
 
-Changes to `elm-assist.toml` are picked up automatically — no restart needed.
+Changes to `elm-assist.toml` are picked up automatically, no restart needed.
 
 ## CLI tools
 
 The `elm-assist` package also includes CLI tools that complement the editor experience:
 
-- **elm-lint** — run lint checks from the command line with `--fix`, `--watch`, and `--json` output
-- **elm-unused** — project-wide dead code detection
-- **elm-deps** — module dependency graph analysis (DOT, Mermaid, cycle detection)
-- **elm-refactor** — automated refactoring (rename, sort imports, qualify imports)
-- **elm-search** — semantic AST-aware code search
+- **elm-lint**: run lint checks from the command line with `--fix`, `--watch`, and `--json` output
+- **elm-unused**: project-wide dead code detection
+- **elm-deps**: module dependency graph analysis (DOT, Mermaid, cycle detection)
+- **elm-refactor**: automated refactoring (rename, sort imports, qualify imports)
+- **elm-search**: semantic AST-aware code search
 
 See the [elm-assist repository](https://github.com/joshburgess/elm-assist) for full documentation.
 

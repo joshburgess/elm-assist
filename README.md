@@ -1,6 +1,6 @@
 # elm-assist
 
-Fast Elm linting, refactoring, and analysis without the Node.js and Elm-runtime overhead. Covers the popular elm-review rule packages plus dead-code, dependency, refactoring, and semantic-search tools, an interactive TUI dashboard, and an LSP server for any editor — all as single native Rust binaries.
+Fast Elm linting, refactoring, and analysis without the Node.js and Elm runtime overhead. Covers the popular elm-review rule packages plus dead-code, dependency, refactoring, and semantic-search tools, an interactive TUI dashboard, and an LSP server for any editor. Everything ships as single native Rust binaries.
 
 Built on [elm-ast](https://crates.io/crates/elm-ast), a complete Elm 0.19.1 parser with 100% parse/round-trip/idempotency on 291 real-world files from 50 packages.
 
@@ -8,7 +8,7 @@ Built on [elm-ast](https://crates.io/crates/elm-ast), a complete Elm 0.19.1 pars
 
 ### elm-assist-tui
 
-Interactive terminal dashboard that unifies every tool in the toolchain into one live view. Browse diagnostics, step through fix previews with unified diffs, explore the dependency tree, hunt dead code, and run semantic searches — all without leaving the terminal. File watching re-runs analyses automatically as you edit.
+Interactive terminal dashboard that unifies every tool in the toolchain into one live view. Browse diagnostics, step through fix previews with unified diffs, explore the dependency tree, hunt dead code, and run semantic searches, all without leaving the terminal. File watching re-runs analyses automatically as you edit.
 
 ```
 elm-assist-tui [src-directory]
