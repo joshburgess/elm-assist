@@ -20,7 +20,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"
 notify = { version = "7", features = ["macos_fsevent"] }
 rayon = "1"
 serde_json = "1"
-elm-ast = "0.1.1"
+elm-ast = "0.1.2"
 elm-lint = { path = "../elm-lint" }
 elm-unused = { path = "../elm-unused" }
 elm-deps = { path = "../elm-deps" }
