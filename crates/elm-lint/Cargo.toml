@@ -6,7 +6,7 @@ description = "Fast Elm linter with built-in rules"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-elm-ast = "0.1.2"
+elm-ast = "0.1.3"
 clap = { version = "4", features = ["derive"] }
 ariadne = "0.5"
 serde = { version = "1", features = ["derive"] }
