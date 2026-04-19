@@ -41,8 +41,16 @@ impl Visit for Visitor<'_> {
         } = &expr.value
         {
             if operator == "++" {
-                if let (Expr::List(left_elems), Expr::List(right_elems)) =
-                    (&left.value, &right.value)
+                if let (
+                    Expr::List {
+                        elements: left_elems,
+                        ..
+                    },
+                    Expr::List {
+                        elements: right_elems,
+                        ..
+                    },
+                ) = (&left.value, &right.value)
                 {
                     // If either side is empty, it's NoEmptyListConcat territory —
                     // reporting here too would produce two diagnostics with

@@ -1,6 +1,6 @@
 {
   "name": "elm-assist",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Fast, native Rust toolchain for Elm projects",
   "license": "MIT OR Apache-2.0",
   "repository": {
@@ -14,6 +14,7 @@
     "elm-deps": "bin/elm-deps",
     "elm-refactor": "bin/elm-refactor",
     "elm-search": "bin/elm-search",
+    "elm-fmt": "bin/elm-fmt",
     "elm-assist-lsp": "bin/elm-assist-lsp",
     "elm-assist-tui": "bin/elm-assist-tui"
   },

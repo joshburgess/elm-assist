@@ -45,7 +45,7 @@ impl Rule for NoUnusedImports {
                 None => false,
                 Some(exp) => match &exp.value {
                     Exposing::All(_) => true,
-                    Exposing::Explicit(items) => items.iter().any(|item| {
+                    Exposing::Explicit { items, .. } => items.iter().any(|item| {
                         let name = exposed_item_name(&item.value);
                         collector.unqualified_refs.contains(&name)
                     }),

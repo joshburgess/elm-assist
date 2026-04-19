@@ -165,7 +165,9 @@ fn collect_names(pat: &Pattern, scope: &mut HashSet<String>) {
 
 fn check_expr_trailing(expr: &Spanned<Expr>, scope: &HashSet<String>, errors: &mut Vec<LintError>) {
     match &expr.value {
-        Expr::LetIn { declarations, body } => {
+        Expr::LetIn {
+            declarations, body, ..
+        } => {
             let mut inner_scope = scope.clone();
             for decl in declarations {
                 match &decl.value {
@@ -214,9 +216,9 @@ fn check_expr_trailing(expr: &Spanned<Expr>, scope: &HashSet<String>, errors: &m
             branches,
             else_branch,
         } => {
-            for (cond, body) in branches {
-                check_expr_trailing(cond, scope, errors);
-                check_expr_trailing(body, scope, errors);
+            for branch in branches {
+                check_expr_trailing(&branch.condition, scope, errors);
+                check_expr_trailing(&branch.then_branch, scope, errors);
             }
             check_expr_trailing(else_branch, scope, errors);
         }
@@ -229,10 +231,17 @@ fn check_expr_trailing(expr: &Spanned<Expr>, scope: &HashSet<String>, errors: &m
             check_expr_trailing(left, scope, errors);
             check_expr_trailing(right, scope, errors);
         }
-        Expr::Parenthesized(inner) | Expr::Negation(inner) => {
+        Expr::Parenthesized { expr: inner, .. } | Expr::Negation(inner) => {
             check_expr_trailing(inner, scope, errors);
         }
-        Expr::Tuple(elems) | Expr::List(elems) => {
+        Expr::Tuple(elems) => {
+            for e in elems {
+                check_expr_trailing(e, scope, errors);
+            }
+        }
+        Expr::List {
+            elements: elems, ..
+        } => {
             for e in elems {
                 check_expr_trailing(e, scope, errors);
             }

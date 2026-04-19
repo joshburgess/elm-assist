@@ -1250,7 +1250,7 @@ fn no_import_exposing_all_passes_explicit() {
 #[test]
 fn no_deprecated_flags_usage() {
     let errors = lint_count(
-        "module T exposing (bar)\n\n{-| deprecated -}\nfoo = 1\n\nbar = foo + 1",
+        "module T exposing (bar)\n\n{-| Module. -}\n\n\n{-| deprecated -}\nfoo = 1\n\nbar = foo + 1",
         &rules::no_deprecated::NoDeprecated,
     );
     assert_eq!(errors, 1);
@@ -1259,7 +1259,7 @@ fn no_deprecated_flags_usage() {
 #[test]
 fn no_deprecated_passes_no_deprecated() {
     let errors = lint_count(
-        "module T exposing (bar)\n\n{-| A helper -}\nfoo = 1\n\nbar = foo + 1",
+        "module T exposing (bar)\n\n{-| Module. -}\n\n\n{-| A helper -}\nfoo = 1\n\nbar = foo + 1",
         &rules::no_deprecated::NoDeprecated,
     );
     assert_eq!(errors, 0);
@@ -1279,7 +1279,7 @@ fn no_missing_documentation_flags_exposed_no_doc() {
 #[test]
 fn no_missing_documentation_passes_with_doc() {
     let errors = lint_count(
-        "module T exposing (foo)\n\n{-| Does stuff -}\nfoo = 1",
+        "module T exposing (foo)\n\n{-| Module. -}\n\n\n{-| Does stuff -}\nfoo = 1",
         &rules::no_missing_documentation::NoMissingDocumentation,
     );
     assert_eq!(errors, 0);

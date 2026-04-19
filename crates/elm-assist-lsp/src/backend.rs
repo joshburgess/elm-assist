@@ -107,6 +107,7 @@ impl LanguageServer for Backend {
                 )),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
+                document_formatting_provider: Some(OneOf::Left(true)),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -381,6 +382,41 @@ impl LanguageServer for Backend {
         }
     }
 
+    async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+        let uri = &params.text_document.uri;
+
+        let source = {
+            let state = self.state.read().await;
+            let Some(doc) = state.documents.get(uri) else {
+                return Ok(None);
+            };
+            doc.source.clone()
+        };
+
+        let module = match elm_ast::parse(&source) {
+            Ok(m) => m,
+            Err(_) => {
+                self.client
+                    .log_message(
+                        MessageType::INFO,
+                        "elm-assist-lsp: formatting skipped (parse error)",
+                    )
+                    .await;
+                return Ok(None);
+            }
+        };
+
+        let formatted = elm_ast::pretty_print(&module);
+        if formatted == source {
+            return Ok(Some(Vec::new()));
+        }
+
+        Ok(Some(vec![TextEdit {
+            range: full_document_range(&source),
+            new_text: formatted,
+        }]))
+    }
+
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let uri = &params.text_document.uri;
         let range = params.range;
@@ -427,4 +463,23 @@ fn position_in_range(pos: &Position, range: &Range) -> bool {
 /// Check if two ranges overlap.
 fn ranges_overlap(a: &Range, b: &Range) -> bool {
     a.start <= b.end && b.start <= a.end
+}
+
+/// Compute a Range covering an entire document, in UTF-16 code units per
+/// the LSP spec.
+fn full_document_range(source: &str) -> Range {
+    let mut line: u32 = 0;
+    let mut last_line_utf16: u32 = 0;
+    for ch in source.chars() {
+        if ch == '\n' {
+            line += 1;
+            last_line_utf16 = 0;
+        } else {
+            last_line_utf16 += ch.len_utf16() as u32;
+        }
+    }
+    Range {
+        start: Position::new(0, 0),
+        end: Position::new(line, last_line_utf16),
+    }
 }

@@ -402,7 +402,7 @@ fn each_rule_fires_on_something() {
         ),
         (
             "NoDeprecated",
-            "module T exposing (bar)\n\n{-| deprecated -}\nfoo = 1\n\nbar = foo + 1",
+            "module T exposing (bar)\n\n{-| Module. -}\n\n\n{-| deprecated -}\nfoo = 1\n\nbar = foo + 1",
         ),
         (
             "NoMissingDocumentation",

@@ -41,7 +41,10 @@ impl Visit for Visitor<'_> {
         } = &expr.value
         {
             if operator == "::" {
-                if let Expr::List(elems) = &right.value {
+                if let Expr::List {
+                    elements: elems, ..
+                } = &right.value
+                {
                     if elems.is_empty() {
                         let left_text = &self.source[left.span.start.offset..left.span.end.offset];
                         self.errors.push(LintError {

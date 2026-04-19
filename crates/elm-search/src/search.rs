@@ -313,7 +313,7 @@ impl Visit for ExprKindVisitor {
             (ExprKindQuery::If, Expr::IfElse { .. }) => Some("if expression"),
             (ExprKindQuery::Lambda, Expr::Lambda { .. }) => Some("lambda"),
             (ExprKindQuery::Record, Expr::Record(_)) => Some("record"),
-            (ExprKindQuery::List, Expr::List(_)) => Some("list"),
+            (ExprKindQuery::List, Expr::List { .. }) => Some("list"),
             (ExprKindQuery::Tuple, Expr::Tuple(_)) => Some("tuple"),
             _ => None,
         };
@@ -432,9 +432,9 @@ fn collect_used_names(expr: &Expr, names: &mut HashSet<String>) {
             branches,
             else_branch,
         } => {
-            for (c, b) in branches {
-                collect_used_names(&c.value, names);
-                collect_used_names(&b.value, names);
+            for branch in branches {
+                collect_used_names(&branch.condition.value, names);
+                collect_used_names(&branch.then_branch.value, names);
             }
             collect_used_names(&else_branch.value, names);
         }
@@ -447,7 +447,9 @@ fn collect_used_names(expr: &Expr, names: &mut HashSet<String>) {
                 collect_used_names(&b.body.value, names);
             }
         }
-        Expr::LetIn { declarations, body } => {
+        Expr::LetIn {
+            declarations, body, ..
+        } => {
             for d in declarations {
                 match &d.value {
                     elm_ast::expr::LetDeclaration::Function(f) => {
@@ -461,10 +463,17 @@ fn collect_used_names(expr: &Expr, names: &mut HashSet<String>) {
             collect_used_names(&body.value, names);
         }
         Expr::Lambda { body, .. } => collect_used_names(&body.value, names),
-        Expr::Parenthesized(inner) | Expr::Negation(inner) => {
+        Expr::Parenthesized { expr: inner, .. } | Expr::Negation(inner) => {
             collect_used_names(&inner.value, names);
         }
-        Expr::Tuple(elems) | Expr::List(elems) => {
+        Expr::Tuple(elems) => {
+            for e in elems {
+                collect_used_names(&e.value, names);
+            }
+        }
+        Expr::List {
+            elements: elems, ..
+        } => {
             for e in elems {
                 collect_used_names(&e.value, names);
             }

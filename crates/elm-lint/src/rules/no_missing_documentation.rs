@@ -28,7 +28,7 @@ impl Rule for NoMissingDocumentation {
         // If exposing (..), everything is public.
         let (exposes_all, exposed_names) = match &exposing_node.value {
             Exposing::All(_) => (true, Vec::new()),
-            Exposing::Explicit(items) => {
+            Exposing::Explicit { items, .. } => {
                 let names: Vec<String> = items
                     .iter()
                     .map(|item| match &item.value {

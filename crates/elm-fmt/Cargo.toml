@@ -1,14 +1,16 @@
 [package]
-name = "elm-unused"
+name = "elm-fmt"
 version = "0.3.0"
 edition = "2024"
-description = "Fast dead code detector for Elm projects"
+description = "Fast Elm formatter matching elm-format output"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/joshburgess/elm-assist"
 homepage = "https://github.com/joshburgess/elm-assist"
 readme = "README.md"
-keywords = ["elm", "unused", "dead-code", "ast", "cli"]
+keywords = ["elm", "format", "formatter", "ast", "cli"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 elm-ast = "0.2.0"
+clap = { version = "4", features = ["derive"] }
+rayon = "1.10"

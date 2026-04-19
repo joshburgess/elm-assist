@@ -32,7 +32,7 @@ struct Visitor<'a> {
 }
 
 fn is_empty_list(expr: &Expr) -> bool {
-    matches!(expr, Expr::List(elems) if elems.is_empty())
+    matches!(expr, Expr::List { elements, .. } if elements.is_empty())
 }
 
 impl Visit for Visitor<'_> {

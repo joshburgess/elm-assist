@@ -33,7 +33,7 @@ impl Rule for NoMissingTypeExpose {
         // If exposing (..), everything is already exposed.
         let exposed_names: HashSet<String> = match &exposing_node.value {
             Exposing::All(_) => return Vec::new(),
-            Exposing::Explicit(items) => items
+            Exposing::Explicit { items, .. } => items
                 .iter()
                 .map(|item| match &item.value {
                     ExposedItem::Function(n) => n.clone(),

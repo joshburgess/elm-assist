@@ -177,7 +177,9 @@ fn check_expr_shadowing(
     errors: &mut Vec<LintError>,
 ) {
     match &expr.value {
-        Expr::LetIn { declarations, body } => {
+        Expr::LetIn {
+            declarations, body, ..
+        } => {
             let mut inner_scope = scope.clone();
             for decl in declarations {
                 match &decl.value {
@@ -235,9 +237,9 @@ fn check_expr_shadowing(
             branches,
             else_branch,
         } => {
-            for (cond, body) in branches {
-                check_expr_shadowing(cond, scope, errors);
-                check_expr_shadowing(body, scope, errors);
+            for branch in branches {
+                check_expr_shadowing(&branch.condition, scope, errors);
+                check_expr_shadowing(&branch.then_branch, scope, errors);
             }
             check_expr_shadowing(else_branch, scope, errors);
         }
@@ -250,10 +252,17 @@ fn check_expr_shadowing(
             check_expr_shadowing(left, scope, errors);
             check_expr_shadowing(right, scope, errors);
         }
-        Expr::Parenthesized(inner) | Expr::Negation(inner) => {
+        Expr::Parenthesized { expr: inner, .. } | Expr::Negation(inner) => {
             check_expr_shadowing(inner, scope, errors);
         }
-        Expr::Tuple(elems) | Expr::List(elems) => {
+        Expr::Tuple(elems) => {
+            for e in elems {
+                check_expr_shadowing(e, scope, errors);
+            }
+        }
+        Expr::List {
+            elements: elems, ..
+        } => {
             for e in elems {
                 check_expr_shadowing(e, scope, errors);
             }

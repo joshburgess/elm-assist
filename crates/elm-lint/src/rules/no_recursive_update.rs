@@ -65,9 +65,9 @@ impl Visitor {
                 branches,
                 else_branch,
             } => {
-                for (c, b) in branches {
-                    self.check_expr(c);
-                    self.check_expr(b);
+                for branch in branches {
+                    self.check_expr(&branch.condition);
+                    self.check_expr(&branch.then_branch);
                 }
                 self.check_expr(else_branch);
             }
@@ -80,7 +80,9 @@ impl Visitor {
                     self.check_expr(&b.body);
                 }
             }
-            Expr::LetIn { declarations, body } => {
+            Expr::LetIn {
+                declarations, body, ..
+            } => {
                 for d in declarations {
                     match &d.value {
                         LetDeclaration::Function(f) => {
@@ -98,10 +100,17 @@ impl Visitor {
                 self.check_expr(left);
                 self.check_expr(right);
             }
-            Expr::Parenthesized(inner) | Expr::Negation(inner) => {
+            Expr::Parenthesized { expr: inner, .. } | Expr::Negation(inner) => {
                 self.check_expr(inner);
             }
-            Expr::Tuple(elems) | Expr::List(elems) => {
+            Expr::Tuple(elems) => {
+                for e in elems {
+                    self.check_expr(e);
+                }
+            }
+            Expr::List {
+                elements: elems, ..
+            } => {
                 for e in elems {
                     self.check_expr(e);
                 }

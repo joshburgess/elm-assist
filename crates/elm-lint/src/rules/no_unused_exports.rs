@@ -81,7 +81,7 @@ fn find_exposed_item_span(module: &ElmModule, name: &str) -> Option<Span> {
         | ModuleHeader::Port { exposing, .. }
         | ModuleHeader::Effect { exposing, .. } => exposing,
     };
-    if let Exposing::Explicit(items) = &exposing_node.value {
+    if let Exposing::Explicit { items, .. } = &exposing_node.value {
         for item in items {
             let item_name = match &item.value {
                 ExposedItem::Function(n) => n.as_str(),

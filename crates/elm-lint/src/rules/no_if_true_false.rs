@@ -40,8 +40,8 @@ impl Visit for Visitor<'_> {
         } = &expr.value
         {
             if branches.len() == 1 {
-                let condition = &branches[0].0;
-                let then_val = is_bool_literal(&branches[0].1.value);
+                let condition = &branches[0].condition;
+                let then_val = is_bool_literal(&branches[0].then_branch.value);
                 let else_val = is_bool_literal(&else_branch.value);
 
                 let cond_text =

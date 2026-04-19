@@ -147,7 +147,7 @@ fn collect_exposing(module: &ElmModule) -> ExposingInfo {
             exposed_types: HashSet::new(),
             exposed_types_open: HashSet::new(),
         },
-        Exposing::Explicit(items) => {
+        Exposing::Explicit { items, .. } => {
             let mut exposed_values = HashSet::new();
             let mut exposed_types = HashSet::new();
             let mut exposed_types_open = HashSet::new();
@@ -192,7 +192,7 @@ fn collect_imports(module: &ElmModule) -> Vec<ImportInfo> {
                 None => ImportExposingInfo::None,
                 Some(exp) => match &exp.value {
                     Exposing::All(_) => ImportExposingInfo::All,
-                    Exposing::Explicit(items) => {
+                    Exposing::Explicit { items, .. } => {
                         let names: Vec<String> = items
                             .iter()
                             .map(|item| match &item.value {

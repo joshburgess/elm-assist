@@ -48,7 +48,7 @@ fn is_err_application(expr: &Expr) -> bool {
                     if module_name.is_empty() && name == "Err"
             )
         }
-        Expr::Parenthesized(inner) => is_err_application(&inner.value),
+        Expr::Parenthesized { expr: inner, .. } => is_err_application(&inner.value),
         _ => false,
     }
 }

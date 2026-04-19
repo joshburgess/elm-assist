@@ -60,7 +60,10 @@ fn collect_refs(expr: &Spanned<Expr>) -> HashSet<String> {
 
 impl Visit for LetVisitor<'_> {
     fn visit_expr(&mut self, expr: &Spanned<Expr>) {
-        if let Expr::LetIn { declarations, body } = &expr.value {
+        if let Expr::LetIn {
+            declarations, body, ..
+        } = &expr.value
+        {
             // Collect all names referenced in the body
             let body_refs = collect_refs(body);
 

@@ -33,7 +33,10 @@ struct Visitor<'a> {
 
 impl Visit for Visitor<'_> {
     fn visit_expr(&mut self, expr: &Spanned<Expr>) {
-        if let Expr::LetIn { declarations, body } = &expr.value {
+        if let Expr::LetIn {
+            declarations, body, ..
+        } = &expr.value
+        {
             if declarations.len() == 1 {
                 if let LetDeclaration::Function(func) = &declarations[0].value {
                     let imp = &func.declaration.value;

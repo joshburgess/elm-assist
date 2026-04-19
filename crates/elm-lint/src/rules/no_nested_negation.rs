@@ -53,7 +53,7 @@ impl Visit for NegVisitor<'_> {
             if args.len() == 2 {
                 if let Expr::FunctionOrValue { module_name, name } = &args[0].value {
                     if module_name.is_empty() && name == "not" {
-                        if let Expr::Parenthesized(inner) = &args[1].value {
+                        if let Expr::Parenthesized { expr: inner, .. } = &args[1].value {
                             if let Expr::Application(inner_args) = &inner.value {
                                 if inner_args.len() == 2 {
                                     if let Expr::FunctionOrValue {

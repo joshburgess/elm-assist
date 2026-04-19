@@ -29,7 +29,7 @@ pub fn qualify_imports(project: &mut Project) -> usize {
                 .unwrap_or_else(|| mod_name.clone());
 
             if let Some(exp) = &imp.value.exposing {
-                if let Exposing::Explicit(items) = &exp.value {
+                if let Exposing::Explicit { items, .. } = &exp.value {
                     let fn_names: Vec<String> = items
                         .iter()
                         .filter_map(|item| match &item.value {
@@ -60,7 +60,7 @@ pub fn qualify_imports(project: &mut Project) -> usize {
         // Remove qualified names from import exposing lists.
         for imp in &mut file.module.imports {
             if let Some(exp) = &mut imp.value.exposing {
-                if let Exposing::Explicit(items) = &mut exp.value {
+                if let Exposing::Explicit { items, .. } = &mut exp.value {
                     let mod_name = imp.value.module_name.value.join(".");
                     let alias = imp
                         .value
@@ -90,7 +90,7 @@ pub fn qualify_imports(project: &mut Project) -> usize {
         // Remove empty exposing lists.
         for imp in &mut file.module.imports {
             if let Some(exp) = &imp.value.exposing {
-                if let Exposing::Explicit(items) = &exp.value {
+                if let Exposing::Explicit { items, .. } = &exp.value {
                     if items.is_empty() {
                         imp.value.exposing = None;
                     }

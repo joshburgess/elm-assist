@@ -1,6 +1,6 @@
 [package]
 name = "elm-assist-tui"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 description = "Interactive terminal dashboard for the elm-assist toolchain"
 license = "MIT OR Apache-2.0"
@@ -20,7 +20,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"
 notify = { version = "7", features = ["macos_fsevent"] }
 rayon = "1"
 serde_json = "1"
-elm-ast = "0.1.3"
+elm-ast = "0.2.0"
 elm-lint = { path = "../elm-lint" }
 elm-unused = { path = "../elm-unused" }
 elm-deps = { path = "../elm-deps" }

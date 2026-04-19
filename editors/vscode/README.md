@@ -2,7 +2,7 @@
 
 A fast Elm development extension for VS Code, powered by a native Rust language server.
 
-Real-time diagnostics, auto-fix code actions, and hover documentation for **54 built-in lint rules**. No Node.js runtime, no Elm compiler dependency, no plugin system to configure.
+Real-time diagnostics, auto-fix code actions, hover documentation for **54 built-in lint rules**, and document formatting matching `elm-format` output. No Node.js runtime, no Elm compiler dependency, no plugin system to configure.
 
 ## Features
 
@@ -17,6 +17,18 @@ Lint errors appear as you type with 150ms debouncing. Parse errors are shown inl
 ### Hover documentation
 
 Hover over any diagnostic to see the rule name, description, and whether an auto-fix is available.
+
+### Document formatting
+
+Format Elm files with the same output as `elm-format`, using the native Rust implementation from `elm-fmt`. Works with `Shift+Option+F` (Format Document), `Format on Save`, and any other VS Code formatting entry point.
+
+If you have another Elm extension installed that also provides formatting, set this as the default in your settings:
+
+```json
+"[elm]": {
+  "editor.defaultFormatter": "joshburgess.elm-assist-lsp"
+}
+```
 
 ### File watching
 
@@ -120,6 +132,7 @@ The `elm-assist` package also includes CLI tools that complement the editor expe
 - **elm-deps**: module dependency graph analysis (DOT, Mermaid, cycle detection)
 - **elm-refactor**: automated refactoring (rename, sort imports, qualify imports)
 - **elm-search**: semantic AST-aware code search
+- **elm-fmt**: fast formatter matching `elm-format` output, with `--check`, `--write`, and recursive directory support
 
 See the [elm-assist repository](https://github.com/joshburgess/elm-assist) for full documentation.
 

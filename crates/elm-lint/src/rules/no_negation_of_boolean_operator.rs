@@ -57,7 +57,7 @@ impl Visit for Visitor<'_> {
         // Pattern: Application [ not, Parenthesized(OperatorApplication { op, left, right }) ]
         if let Expr::Application(args) = &expr.value {
             if args.len() == 2 && is_not(&args[0].value) {
-                if let Expr::Parenthesized(inner) = &args[1].value {
+                if let Expr::Parenthesized { expr: inner, .. } = &args[1].value {
                     if let Expr::OperatorApplication {
                         operator,
                         left,

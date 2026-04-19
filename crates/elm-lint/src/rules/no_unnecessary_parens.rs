@@ -33,7 +33,7 @@ struct ParenVisitor<'a> {
 
 impl Visit for ParenVisitor<'_> {
     fn visit_expr(&mut self, expr: &Spanned<Expr>) {
-        if let Expr::Parenthesized(inner) = &expr.value {
+        if let Expr::Parenthesized { expr: inner, .. } = &expr.value {
             // Parens around simple atoms are unnecessary.
             let is_simple = matches!(
                 &inner.value,

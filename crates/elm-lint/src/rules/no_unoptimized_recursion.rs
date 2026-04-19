@@ -68,10 +68,10 @@ fn contains_self_call(expr: &Spanned<Expr>, name: &str) -> bool {
             branches,
             else_branch,
         } => {
-            branches
-                .iter()
-                .any(|(c, b)| contains_self_call(c, name) || contains_self_call(b, name))
-                || contains_self_call(else_branch, name)
+            branches.iter().any(|branch| {
+                contains_self_call(&branch.condition, name)
+                    || contains_self_call(&branch.then_branch, name)
+            }) || contains_self_call(else_branch, name)
         }
         Expr::CaseOf {
             expr: subject,
@@ -80,15 +80,22 @@ fn contains_self_call(expr: &Spanned<Expr>, name: &str) -> bool {
             contains_self_call(subject, name)
                 || branches.iter().any(|b| contains_self_call(&b.body, name))
         }
-        Expr::LetIn { declarations, body } => {
+        Expr::LetIn {
+            declarations, body, ..
+        } => {
             declarations.iter().any(|d| match &d.value {
                 LetDeclaration::Function(f) => contains_self_call(&f.declaration.value.body, name),
                 LetDeclaration::Destructuring { body: b, .. } => contains_self_call(b, name),
             }) || contains_self_call(body, name)
         }
         Expr::Lambda { body, .. } => contains_self_call(body, name),
-        Expr::Parenthesized(inner) | Expr::Negation(inner) => contains_self_call(inner, name),
-        Expr::Tuple(elems) | Expr::List(elems) => elems.iter().any(|e| contains_self_call(e, name)),
+        Expr::Parenthesized { expr: inner, .. } | Expr::Negation(inner) => {
+            contains_self_call(inner, name)
+        }
+        Expr::Tuple(elems) => elems.iter().any(|e| contains_self_call(e, name)),
+        Expr::List {
+            elements: elems, ..
+        } => elems.iter().any(|e| contains_self_call(e, name)),
         Expr::Record(fields) => fields
             .iter()
             .any(|f| contains_self_call(&f.value.value, name)),
@@ -122,11 +129,13 @@ fn all_calls_in_tail_position(expr: &Spanned<Expr>, name: &str) -> bool {
             else_branch,
         } => {
             // Conditions must not contain recursive calls (not tail position).
-            let conds_ok = branches.iter().all(|(c, _)| !contains_self_call(c, name));
+            let conds_ok = branches
+                .iter()
+                .all(|branch| !contains_self_call(&branch.condition, name));
             // Branch bodies must have all recursive calls in tail position.
             let bodies_ok = branches
                 .iter()
-                .all(|(_, b)| all_calls_in_tail_position(b, name));
+                .all(|branch| all_calls_in_tail_position(&branch.then_branch, name));
             let else_ok = all_calls_in_tail_position(else_branch, name);
             conds_ok && bodies_ok && else_ok
         }
@@ -142,7 +151,9 @@ fn all_calls_in_tail_position(expr: &Spanned<Expr>, name: &str) -> bool {
         }
 
         // let..in: only the body is in tail position.
-        Expr::LetIn { declarations, body } => {
+        Expr::LetIn {
+            declarations, body, ..
+        } => {
             let decls_ok = declarations.iter().all(|d| match &d.value {
                 LetDeclaration::Function(f) => !contains_self_call(&f.declaration.value.body, name),
                 LetDeclaration::Destructuring { body: b, .. } => !contains_self_call(b, name),
@@ -154,13 +165,14 @@ fn all_calls_in_tail_position(expr: &Spanned<Expr>, name: &str) -> bool {
         Expr::Lambda { body, .. } => !contains_self_call(body, name),
 
         // Parenthesized: transparent
-        Expr::Parenthesized(inner) => all_calls_in_tail_position(inner, name),
+        Expr::Parenthesized { expr: inner, .. } => all_calls_in_tail_position(inner, name),
 
         // Everything else: no self-calls possible or not in tail position.
         Expr::Negation(inner) => !contains_self_call(inner, name),
-        Expr::Tuple(elems) | Expr::List(elems) => {
-            !elems.iter().any(|e| contains_self_call(e, name))
-        }
+        Expr::Tuple(elems) => !elems.iter().any(|e| contains_self_call(e, name)),
+        Expr::List {
+            elements: elems, ..
+        } => !elems.iter().any(|e| contains_self_call(e, name)),
         Expr::Record(fields) => !fields
             .iter()
             .any(|f| contains_self_call(&f.value.value, name)),

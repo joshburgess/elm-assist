@@ -1,9 +1,14 @@
 [package]
 name = "elm-refactor"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 description = "Automated refactoring tool for Elm projects"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/joshburgess/elm-assist"
+homepage = "https://github.com/joshburgess/elm-assist"
+readme = "README.md"
+keywords = ["elm", "refactor", "ast", "rename", "cli"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
-elm-ast = "0.1.3"
+elm-ast = "0.2.0"

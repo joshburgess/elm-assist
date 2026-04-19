@@ -74,7 +74,7 @@ fn compute_complexity(expr: &Spanned<Expr>, func_name: &str, nesting: u32) -> u3
             else_branch,
         } => {
             let mut cost = 0;
-            for (i, (cond, body)) in branches.iter().enumerate() {
+            for (i, branch) in branches.iter().enumerate() {
                 if i == 0 {
                     // First `if`: +1 for the branch, +nesting for depth
                     cost += 1 + nesting;
@@ -82,8 +82,8 @@ fn compute_complexity(expr: &Spanned<Expr>, func_name: &str, nesting: u32) -> u3
                     // `else if`: +1 only (no nesting penalty for else-if chains)
                     cost += 1;
                 }
-                cost += compute_complexity(cond, func_name, nesting + 1);
-                cost += compute_complexity(body, func_name, nesting + 1);
+                cost += compute_complexity(&branch.condition, func_name, nesting + 1);
+                cost += compute_complexity(&branch.then_branch, func_name, nesting + 1);
             }
             // `else`: no inherent cost (it's the default path), but count its body
             cost += compute_complexity(else_branch, func_name, nesting + 1);
@@ -131,7 +131,9 @@ fn compute_complexity(expr: &Spanned<Expr>, func_name: &str, nesting: u32) -> u3
             }
             cost
         }
-        Expr::LetIn { declarations, body } => {
+        Expr::LetIn {
+            declarations, body, ..
+        } => {
             let mut cost = 0;
             for decl in declarations {
                 match &decl.value {
@@ -159,10 +161,19 @@ fn compute_complexity(expr: &Spanned<Expr>, func_name: &str, nesting: u32) -> u3
             }
             cost
         }
-        Expr::Parenthesized(inner) | Expr::Negation(inner) => {
+        Expr::Parenthesized { expr: inner, .. } | Expr::Negation(inner) => {
             compute_complexity(inner, func_name, nesting)
         }
-        Expr::Tuple(elems) | Expr::List(elems) => {
+        Expr::Tuple(elems) => {
+            let mut cost = 0;
+            for e in elems {
+                cost += compute_complexity(e, func_name, nesting);
+            }
+            cost
+        }
+        Expr::List {
+            elements: elems, ..
+        } => {
             let mut cost = 0;
             for e in elems {
                 cost += compute_complexity(e, func_name, nesting);

@@ -120,7 +120,7 @@ fn rename_in_exposing(module: &mut elm_ast::file::ElmModule, from: &str, to: &st
 fn import_exposes_name(exposing: &Exposing, name: &str) -> bool {
     match exposing {
         Exposing::All(_) => true,
-        Exposing::Explicit(items) => items.iter().any(|item| match &item.value {
+        Exposing::Explicit { items, .. } => items.iter().any(|item| match &item.value {
             ExposedItem::Function(n) => n == name,
             _ => false,
         }),
@@ -129,10 +129,10 @@ fn import_exposes_name(exposing: &Exposing, name: &str) -> bool {
 
 fn rename_in_import_exposing(exposing: &mut Exposing, from: &str, to: &str) -> usize {
     let mut changes = 0;
-    if let Exposing::Explicit(items) = exposing {
+    if let Exposing::Explicit { items, .. } = exposing {
         for item in items {
             match &mut item.value {
-                ExposedItem::Function(name) if name == from => {
+                ExposedItem::Function(name) if name.as_str() == from => {
                     *name = to.to_string();
                     changes += 1;
                 }

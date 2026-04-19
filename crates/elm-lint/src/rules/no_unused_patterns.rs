@@ -132,9 +132,9 @@ fn collect_refs_inner(expr: &Expr, refs: &mut HashSet<String>) {
             branches,
             else_branch,
         } => {
-            for (c, b) in branches {
-                collect_refs_inner(&c.value, refs);
-                collect_refs_inner(&b.value, refs);
+            for branch in branches {
+                collect_refs_inner(&branch.condition.value, refs);
+                collect_refs_inner(&branch.then_branch.value, refs);
             }
             collect_refs_inner(&else_branch.value, refs);
         }
@@ -147,7 +147,9 @@ fn collect_refs_inner(expr: &Expr, refs: &mut HashSet<String>) {
                 collect_refs_inner(&b.body.value, refs);
             }
         }
-        Expr::LetIn { declarations, body } => {
+        Expr::LetIn {
+            declarations, body, ..
+        } => {
             for d in declarations {
                 match &d.value {
                     LetDeclaration::Function(f) => {
@@ -161,10 +163,17 @@ fn collect_refs_inner(expr: &Expr, refs: &mut HashSet<String>) {
             collect_refs_inner(&body.value, refs);
         }
         Expr::Lambda { body, .. } => collect_refs_inner(&body.value, refs),
-        Expr::Parenthesized(inner) | Expr::Negation(inner) => {
+        Expr::Parenthesized { expr: inner, .. } | Expr::Negation(inner) => {
             collect_refs_inner(&inner.value, refs);
         }
-        Expr::Tuple(elems) | Expr::List(elems) => {
+        Expr::Tuple(elems) => {
+            for e in elems {
+                collect_refs_inner(&e.value, refs);
+            }
+        }
+        Expr::List {
+            elements: elems, ..
+        } => {
             for e in elems {
                 collect_refs_inner(&e.value, refs);
             }
