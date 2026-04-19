@@ -48,17 +48,15 @@ fn check_unused_param(
     errors: &mut Vec<LintError>,
 ) {
     match &pattern.value {
-        Pattern::Var(name) => {
-            if !refs.contains(name) {
-                // Fix: replace with `_`
-                errors.push(LintError {
-                    rule: "NoUnusedParameters",
-                    severity: Severity::Warning,
-                    message: format!("Parameter `{name}` is never used"),
-                    span: pattern.span,
-                    fix: Some(Fix::replace(pattern.span, "_".to_string())),
-                });
-            }
+        Pattern::Var(name) if !refs.contains(name) => {
+            // Fix: replace with `_`
+            errors.push(LintError {
+                rule: "NoUnusedParameters",
+                severity: Severity::Warning,
+                message: format!("Parameter `{name}` is never used"),
+                span: pattern.span,
+                fix: Some(Fix::replace(pattern.span, "_".to_string())),
+            });
         }
         Pattern::As {
             pattern: inner,

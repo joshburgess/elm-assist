@@ -23,20 +23,18 @@ impl Rule for NoDeprecated {
 
         for decl in &ctx.module.declarations {
             match &decl.value {
-                Declaration::FunctionDeclaration(func) => {
-                    if is_deprecated_doc(&func.documentation) {
-                        deprecated_names.insert(func.declaration.value.name.value.clone());
-                    }
+                Declaration::FunctionDeclaration(func)
+                    if is_deprecated_doc(&func.documentation) =>
+                {
+                    deprecated_names.insert(func.declaration.value.name.value.clone());
                 }
-                Declaration::AliasDeclaration(alias) => {
-                    if is_deprecated_doc(&alias.documentation) {
-                        deprecated_names.insert(alias.name.value.clone());
-                    }
+                Declaration::AliasDeclaration(alias)
+                    if is_deprecated_doc(&alias.documentation) =>
+                {
+                    deprecated_names.insert(alias.name.value.clone());
                 }
-                Declaration::CustomTypeDeclaration(ct) => {
-                    if is_deprecated_doc(&ct.documentation) {
-                        deprecated_names.insert(ct.name.value.clone());
-                    }
+                Declaration::CustomTypeDeclaration(ct) if is_deprecated_doc(&ct.documentation) => {
+                    deprecated_names.insert(ct.name.value.clone());
                 }
                 _ => {}
             }
