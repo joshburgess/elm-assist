@@ -269,21 +269,17 @@ fn search_defined(module: &ElmModule, pattern: &str) -> Vec<Match> {
                     });
                 }
             }
-            Declaration::CustomTypeDeclaration(ct) => {
-                if ct.name.value.contains(pattern) {
-                    matches.push(Match {
-                        span: ct.name.span,
-                        context: format!("type {}", ct.name.value),
-                    });
-                }
+            Declaration::CustomTypeDeclaration(ct) if ct.name.value.contains(pattern) => {
+                matches.push(Match {
+                    span: ct.name.span,
+                    context: format!("type {}", ct.name.value),
+                });
             }
-            Declaration::AliasDeclaration(alias) => {
-                if alias.name.value.contains(pattern) {
-                    matches.push(Match {
-                        span: alias.name.span,
-                        context: format!("type alias {}", alias.name.value),
-                    });
-                }
+            Declaration::AliasDeclaration(alias) if alias.name.value.contains(pattern) => {
+                matches.push(Match {
+                    span: alias.name.span,
+                    context: format!("type alias {}", alias.name.value),
+                });
             }
             _ => {}
         }

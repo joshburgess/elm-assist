@@ -28,9 +28,7 @@ impl Rule for NoDeprecated {
                 {
                     deprecated_names.insert(func.declaration.value.name.value.clone());
                 }
-                Declaration::AliasDeclaration(alias)
-                    if is_deprecated_doc(&alias.documentation) =>
-                {
+                Declaration::AliasDeclaration(alias) if is_deprecated_doc(&alias.documentation) => {
                     deprecated_names.insert(alias.name.value.clone());
                 }
                 Declaration::CustomTypeDeclaration(ct) if is_deprecated_doc(&ct.documentation) => {
