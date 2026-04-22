@@ -159,6 +159,24 @@ elm-refactor qualify-imports [src-directory]
 elm-refactor --dry-run ...
 ```
 
+### elm-fmt
+
+Fast Elm formatter matching `elm-format` output, with no Node.js or Haskell runtime required. Two output styles:
+
+- `elm-format` (default): byte-for-byte match with `elm-format <source>`.
+- `elm-format-converged`: fixed point under repeated `elm-format` runs, useful for code generation.
+
+```
+elm-fmt [paths]              # print formatted output to stdout
+elm-fmt --write src/         # format files in place
+elm-fmt --check src/         # exit 1 if any file would change
+cat src/Main.elm | elm-fmt   # read from stdin
+
+elm-fmt --style elm-format-converged --write src/
+```
+
+See [crates/elm-fmt/README.md](crates/elm-fmt/README.md) for full detail on the two styles and when to pick which.
+
 ### elm-search
 
 Semantic AST-aware code search.
@@ -206,6 +224,7 @@ cargo install --path crates/elm-unused
 cargo install --path crates/elm-deps
 cargo install --path crates/elm-refactor
 cargo install --path crates/elm-search
+cargo install --path crates/elm-fmt
 cargo install --path crates/elm-assist-lsp
 cargo install --path crates/elm-assist-tui
 ```
