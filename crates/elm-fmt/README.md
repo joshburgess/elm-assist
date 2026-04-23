@@ -4,7 +4,6 @@ Fast Elm formatter matching `elm-format` output. Built on [elm-ast](https://crat
 
 ## Features
 
-- Native Rust, no Node.js or Haskell runtime required
 - Parallel per-file formatting via rayon
 - Two output styles (see [Styles](#styles) below):
   - `elm-format` (default): matches `elm-format <source>` output byte-for-byte

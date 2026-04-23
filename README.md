@@ -161,7 +161,7 @@ elm-refactor --dry-run ...
 
 ### elm-fmt
 
-Fast Elm formatter matching `elm-format` output, with no Node.js or Haskell runtime required. Two output styles:
+Fast Elm formatter matching `elm-format` output. Two output styles:
 
 - `elm-format` (default): byte-for-byte match with `elm-format <source>`.
 - `elm-format-converged`: fixed point under repeated `elm-format` runs, useful for code generation.
