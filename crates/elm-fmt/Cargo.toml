@@ -1,6 +1,6 @@
 [package]
 name = "elm-fmt"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 description = "Fast Elm formatter matching elm-format output"
 license = "MIT OR Apache-2.0"
