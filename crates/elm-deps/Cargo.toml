@@ -11,4 +11,4 @@ keywords = ["elm", "dependencies", "graph", "ast", "cli"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
-elm-ast = "0.2.0"
+elm-ast = "0.2.1"
