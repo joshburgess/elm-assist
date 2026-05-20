@@ -4,6 +4,7 @@ version = "0.4.0"
 edition = "2024"
 description = "Language Server Protocol server for Elm linting"
 license = "MIT OR Apache-2.0"
+publish = false
 
 [dependencies]
 elm-ast = "0.2.1"

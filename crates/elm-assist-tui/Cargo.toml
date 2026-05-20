@@ -4,6 +4,7 @@ version = "0.4.0"
 edition = "2024"
 description = "Interactive terminal dashboard for the elm-assist toolchain"
 license = "MIT OR Apache-2.0"
+publish = false
 
 [lib]
 name = "elm_assist_tui"
