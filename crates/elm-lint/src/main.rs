@@ -260,7 +260,9 @@ fn show_fix_diffs(
         sorted.sort_by_key(|e| (e.span.start.line, e.span.start.column));
 
         for err in &sorted {
-            let fix = err.fix.as_ref().unwrap();
+            let Some(fix) = err.fix.as_ref() else {
+                continue;
+            };
             match apply_fixes(source, &fix.edits) {
                 Ok(fixed) => {
                     total_fixable += 1;

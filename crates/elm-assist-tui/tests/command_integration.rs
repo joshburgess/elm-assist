@@ -32,10 +32,10 @@ struct TempProject {
 }
 
 impl TempProject {
-    fn new(name: &str) -> Self {
+    fn new(name: &str) -> Result<Self, TestError> {
         let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .map_err(|e| fail(format!("system time before UNIX_EPOCH: {e}")))?
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
             "elm-assist-tui-test-{}-{}-{}",
@@ -43,20 +43,23 @@ impl TempProject {
             std::process::id(),
             nanos,
         ));
-        std::fs::create_dir_all(root.join("src")).unwrap();
-        Self { root }
+        std::fs::create_dir_all(root.join("src"))
+            .map_err(|e| fail(format!("create temp src dir: {e}")))?;
+        Ok(Self { root })
     }
 
     fn src_dir(&self) -> String {
         self.root.join("src").display().to_string()
     }
 
-    fn write(&self, relpath: &str, content: &str) {
+    fn write(&self, relpath: &str, content: &str) -> Result<(), TestError> {
         let p = self.root.join("src").join(relpath);
         if let Some(parent) = p.parent() {
-            std::fs::create_dir_all(parent).unwrap();
+            std::fs::create_dir_all(parent)
+                .map_err(|e| fail(format!("create parent dir: {e}")))?;
         }
-        std::fs::write(p, content).unwrap();
+        std::fs::write(&p, content).map_err(|e| fail(format!("write {p:?}: {e}")))?;
+        Ok(())
     }
 
     fn path_in_src(&self, relpath: &str) -> String {
@@ -112,9 +115,9 @@ const GOOD_ELM: &str = "module Main exposing (..)\n\nx = 1\n";
 
 #[tokio::test]
 async fn scan_project_reports_module_counts() -> TestResult {
-    let project = TempProject::new("scan-ok");
-    project.write("A.elm", GOOD_ELM);
-    project.write("B.elm", "module B exposing (..)\n\ny = 2\n");
+    let project = TempProject::new("scan-ok")?;
+    project.write("A.elm", GOOD_ELM)?;
+    project.write("B.elm", "module B exposing (..)\n\ny = 2\n")?;
 
     let (tx, mut rx) = mpsc::unbounded_channel();
     command::execute(Command::ScanProject, project.src_dir(), tx).await;
@@ -139,9 +142,9 @@ async fn scan_project_reports_module_counts() -> TestResult {
 
 #[tokio::test]
 async fn scan_project_counts_parse_errors() -> TestResult {
-    let project = TempProject::new("scan-parse-err");
-    project.write("A.elm", GOOD_ELM);
-    project.write("Broken.elm", "module Broken exposing (..\n\n(((\n");
+    let project = TempProject::new("scan-parse-err")?;
+    project.write("A.elm", GOOD_ELM)?;
+    project.write("Broken.elm", "module Broken exposing (..\n\n(((\n")?;
 
     let (tx, mut rx) = mpsc::unbounded_channel();
     command::execute(Command::ScanProject, project.src_dir(), tx).await;
@@ -187,8 +190,8 @@ async fn scan_project_missing_dir_emits_status_error() -> TestResult {
 
 #[tokio::test]
 async fn run_analyses_emits_lint_and_deps() -> TestResult {
-    let project = TempProject::new("run-analyses");
-    project.write("Main.elm", GOOD_ELM);
+    let project = TempProject::new("run-analyses")?;
+    project.write("Main.elm", GOOD_ELM)?;
 
     let (tx, mut rx) = mpsc::unbounded_channel();
     command::execute(Command::RunAnalyses, project.src_dir(), tx).await;
@@ -210,9 +213,9 @@ async fn run_analyses_emits_lint_and_deps() -> TestResult {
 
 #[tokio::test]
 async fn apply_fix_writes_when_result_parses() -> TestResult {
-    let project = TempProject::new("apply-ok");
+    let project = TempProject::new("apply-ok")?;
     let target = project.path_in_src("Target.elm");
-    project.write("Target.elm", "module Target exposing (..)\n\nx = 0\n");
+    project.write("Target.elm", "module Target exposing (..)\n\nx = 0\n")?;
 
     let new_source = "module Target exposing (..)\n\nx = 42\n".to_string();
     let (tx, mut rx) = mpsc::unbounded_channel();
@@ -236,10 +239,10 @@ async fn apply_fix_writes_when_result_parses() -> TestResult {
 
 #[tokio::test]
 async fn apply_fix_rejects_invalid_elm_without_writing() -> TestResult {
-    let project = TempProject::new("apply-invalid");
+    let project = TempProject::new("apply-invalid")?;
     let target = project.path_in_src("Target.elm");
     let original = "module Target exposing (..)\n\nx = 0\n";
-    project.write("Target.elm", original);
+    project.write("Target.elm", original)?;
 
     // Missing `exposing` is a parse error.
     let bad_source = "module Target\n\nx = \n".to_string();
@@ -271,7 +274,7 @@ async fn export_lint_json_writes_file_and_status_info() -> TestResult {
     use elm_ast::span::{Position, Span};
     use elm_lint::rule::{LintError, Severity};
 
-    let project = TempProject::new("export-json");
+    let project = TempProject::new("export-json")?;
 
     let err = LintError {
         rule: "NoDebug",
@@ -323,11 +326,11 @@ async fn export_lint_json_writes_file_and_status_info() -> TestResult {
 
 #[tokio::test]
 async fn batch_runs_sub_commands_sequentially() -> TestResult {
-    let project = TempProject::new("batch");
+    let project = TempProject::new("batch")?;
     let a = project.path_in_src("A.elm");
     let b = project.path_in_src("B.elm");
-    project.write("A.elm", "module A exposing (..)\n\nx = 0\n");
-    project.write("B.elm", "module B exposing (..)\n\ny = 0\n");
+    project.write("A.elm", "module A exposing (..)\n\nx = 0\n")?;
+    project.write("B.elm", "module B exposing (..)\n\ny = 0\n")?;
 
     let a_new = "module A exposing (..)\n\nx = 1\n".to_string();
     let b_new = "module B exposing (..)\n\ny = 2\n".to_string();

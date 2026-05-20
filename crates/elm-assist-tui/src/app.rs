@@ -1136,16 +1136,15 @@ fn flush_accepted_fixes(state: &mut AppState) -> Command {
 
     let mut per_file: HashMap<String, (Arc<String>, Vec<elm_lint::rule::Edit>)> = HashMap::new();
     for (i, item) in state.fix_review.items.iter().enumerate() {
-        if !state.fix_review.accepted_mask[i] {
+        if state.fix_review.accepted_mask.get(i).copied() != Some(true) {
             continue;
         }
-        // Invariant: every FixReviewItem has error.fix = Some(_),
-        // enforced in enter_fix_review.
-        let fix = item
-            .error
-            .fix
-            .as_ref()
-            .expect("FixReviewItem invariant: fix is Some");
+        // Invariant: every FixReviewItem has error.fix = Some(_), enforced
+        // in enter_fix_review. Skip defensively if the invariant is broken
+        // rather than panic.
+        let Some(fix) = item.error.fix.as_ref() else {
+            continue;
+        };
         let entry = per_file
             .entry(item.file_path.clone())
             .or_insert_with(|| (Arc::clone(&item.original_source), Vec::new()));
@@ -1248,6 +1247,7 @@ fn apply_filter(state: &mut AppState) {
 mod tests {
     use super::*;
     use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+    use test_better::prelude::*;
 
     fn key(code: KeyCode) -> KeyEvent {
         KeyEvent {
@@ -1522,7 +1522,7 @@ mod tests {
     // ── Filter rebuilding ──────────────────────────────────────────
 
     #[test]
-    fn filter_narrows_results() {
+    fn filter_narrows_results() -> TestResult {
         let mut state = state_with_errors(vec![
             ("src/A.elm", dummy_error("NoDebug", "found debug log", 1)),
             ("src/B.elm", dummy_error("NoUnused", "unused import", 2)),
@@ -1537,7 +1537,12 @@ mod tests {
 
         // Only the debug error should match.
         assert_eq!(state.lint.visible_len(), 1);
-        assert_eq!(state.lint.visible_at(0).unwrap().1.rule, "NoDebug");
+        let (_, err) = state
+            .lint
+            .visible_at(0)
+            .or_fail_with("visible_at(0) returns an entry")?;
+        check!(err.rule).satisfies(eq("NoDebug"))?;
+        Ok(())
     }
 
     #[test]
@@ -1810,13 +1815,18 @@ mod tests {
     }
 
     #[test]
-    fn file_changed_triggers_relint() {
+    fn file_changed_triggers_relint() -> TestResult {
         let mut state = AppState::new("src".into());
         let cmd = update(&mut state, Msg::FileChanged(vec!["src/Main.elm".into()]));
         assert!(state.loading);
         assert!(matches!(cmd, Command::RunAnalyses));
         // .elm changes skip ScanProject, go straight to the unified analyses pass.
-        assert!(state.status_message.as_ref().unwrap().contains("Main.elm"));
+        let msg = state
+            .status_message
+            .as_ref()
+            .or_fail_with("status_message set after FileChanged")?;
+        check!(msg.as_str()).satisfies(contains_str("Main.elm"))?;
+        Ok(())
     }
 
     #[test]
@@ -1842,18 +1852,17 @@ mod tests {
     }
 
     #[test]
-    fn config_changed_triggers_full_rescan() {
+    fn config_changed_triggers_full_rescan() -> TestResult {
         let mut state = AppState::new("src".into());
         let cmd = update(&mut state, Msg::FileChanged(vec!["elm-assist.toml".into()]));
         assert!(state.loading);
         assert!(matches!(cmd, Command::ScanProject));
-        assert!(
-            state
-                .status_message
-                .as_ref()
-                .unwrap()
-                .contains("Config changed")
-        );
+        let msg = state
+            .status_message
+            .as_ref()
+            .or_fail_with("status_message set after config change")?;
+        check!(msg.as_str()).satisfies(contains_str("Config changed"))?;
+        Ok(())
     }
 
     // ── Deps sub-view cycling ──────────────────────────────────────

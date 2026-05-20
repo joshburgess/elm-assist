@@ -134,22 +134,30 @@ impl LanguageServer for Backend {
             },
         ];
 
-        let registration = Registration {
-            id: "watch-files".into(),
-            method: "workspace/didChangeWatchedFiles".into(),
-            register_options: Some(
-                serde_json::to_value(DidChangeWatchedFilesRegistrationOptions { watchers })
-                    .unwrap(),
-            ),
-        };
-
-        if let Err(e) = self.client.register_capability(vec![registration]).await {
-            self.client
-                .log_message(
-                    MessageType::WARNING,
-                    format!("Failed to register file watchers: {e}"),
-                )
-                .await;
+        match serde_json::to_value(DidChangeWatchedFilesRegistrationOptions { watchers }) {
+            Ok(value) => {
+                let registration = Registration {
+                    id: "watch-files".into(),
+                    method: "workspace/didChangeWatchedFiles".into(),
+                    register_options: Some(value),
+                };
+                if let Err(e) = self.client.register_capability(vec![registration]).await {
+                    self.client
+                        .log_message(
+                            MessageType::WARNING,
+                            format!("Failed to register file watchers: {e}"),
+                        )
+                        .await;
+                }
+            }
+            Err(e) => {
+                self.client
+                    .log_message(
+                        MessageType::WARNING,
+                        format!("Failed to serialize file watcher options: {e}"),
+                    )
+                    .await;
+            }
         }
 
         // Publish initial diagnostics for all scanned files.

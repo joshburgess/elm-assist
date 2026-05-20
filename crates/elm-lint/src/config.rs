@@ -126,17 +126,19 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_better::prelude::*;
 
     #[test]
-    fn parse_minimal_config() {
-        let config: Config = toml::from_str("").unwrap();
-        assert!(config.src.is_none());
-        assert!(config.rules.disable.is_empty());
-        assert!(config.rules.severity.is_empty());
+    fn parse_minimal_config() -> TestResult {
+        let config: Config = toml::from_str("").or_fail_with("empty toml parses")?;
+        check!(config.src.is_none()).satisfies(is_true())?;
+        check!(config.rules.disable.is_empty()).satisfies(is_true())?;
+        check!(config.rules.severity.is_empty()).satisfies(is_true())?;
+        Ok(())
     }
 
     #[test]
-    fn parse_full_config() {
+    fn parse_full_config() -> TestResult {
         let config: Config = toml::from_str(
             r#"
 src = "lib"
@@ -150,34 +152,33 @@ NoUnusedImports = "warning"
 NoAlwaysIdentity = "off"
 "#,
         )
-        .unwrap();
+        .or_fail_with("config toml parses")?;
 
-        assert_eq!(config.src.as_deref(), Some("lib"));
-        assert_eq!(config.rules.disable.len(), 2);
-        assert!(config.is_rule_disabled("NoTodoComment"));
-        assert!(config.is_rule_disabled("NoMissingTypeAnnotation"));
-        assert!(!config.is_rule_disabled("NoDebug"));
+        check!(config.src.as_deref()).satisfies(eq(Some("lib")))?;
+        check!(config.rules.disable.len()).satisfies(eq(2))?;
+        check!(config.is_rule_disabled("NoTodoComment")).satisfies(is_true())?;
+        check!(config.is_rule_disabled("NoMissingTypeAnnotation")).satisfies(is_true())?;
+        check!(config.is_rule_disabled("NoDebug")).satisfies(is_false())?;
         // "off" in severity also disables.
-        assert!(config.is_rule_disabled("NoAlwaysIdentity"));
+        check!(config.is_rule_disabled("NoAlwaysIdentity")).satisfies(is_true())?;
 
-        assert_eq!(config.severity_for("NoDebug"), Some(Severity::Error));
-        assert_eq!(
-            config.severity_for("NoUnusedImports"),
-            Some(Severity::Warning)
-        );
-        assert_eq!(config.severity_for("NoAlwaysIdentity"), None);
-        assert_eq!(config.severity_for("UnknownRule"), None);
+        check!(config.severity_for("NoDebug")).satisfies(eq(Some(Severity::Error)))?;
+        check!(config.severity_for("NoUnusedImports")).satisfies(eq(Some(Severity::Warning)))?;
+        check!(config.severity_for("NoAlwaysIdentity")).satisfies(eq(None))?;
+        check!(config.severity_for("UnknownRule")).satisfies(eq(None))?;
+        Ok(())
     }
 
     #[test]
-    fn default_config_disables_nothing() {
+    fn default_config_disables_nothing() -> TestResult {
         let config = Config::default();
-        assert!(!config.is_rule_disabled("NoDebug"));
-        assert_eq!(config.severity_for("NoDebug"), None);
+        check!(config.is_rule_disabled("NoDebug")).satisfies(is_false())?;
+        check!(config.severity_for("NoDebug")).satisfies(eq(None))?;
+        Ok(())
     }
 
     #[test]
-    fn parse_per_rule_options() {
+    fn parse_per_rule_options() -> TestResult {
         let config: Config = toml::from_str(
             r#"
 [rules.NoMaxLineLength]
@@ -190,28 +191,43 @@ threshold = 20
 aliases = { "Json.Decode" = "Decode", "Html.Attributes" = "Attr" }
 "#,
         )
-        .unwrap();
+        .or_fail_with("config toml parses")?;
 
-        let max_opts = config.rule_options("NoMaxLineLength").unwrap();
-        assert_eq!(max_opts.get("max_length").unwrap().as_integer(), Some(100));
+        let max_opts = config
+            .rule_options("NoMaxLineLength")
+            .or_fail_with("NoMaxLineLength options present")?;
+        check!(
+            max_opts
+                .get("max_length")
+                .and_then(|v| v.as_integer())
+        )
+        .satisfies(eq(Some(100)))?;
 
-        let cog_opts = config.rule_options("CognitiveComplexity").unwrap();
-        assert_eq!(cog_opts.get("threshold").unwrap().as_integer(), Some(20));
+        let cog_opts = config
+            .rule_options("CognitiveComplexity")
+            .or_fail_with("CognitiveComplexity options present")?;
+        check!(cog_opts.get("threshold").and_then(|v| v.as_integer()))
+            .satisfies(eq(Some(20)))?;
 
-        let alias_opts = config.rule_options("NoInconsistentAliases").unwrap();
-        let aliases = alias_opts.get("aliases").unwrap().as_table().unwrap();
-        assert_eq!(aliases.get("Json.Decode").unwrap().as_str(), Some("Decode"));
-        assert_eq!(
-            aliases.get("Html.Attributes").unwrap().as_str(),
-            Some("Attr")
-        );
+        let alias_opts = config
+            .rule_options("NoInconsistentAliases")
+            .or_fail_with("NoInconsistentAliases options present")?;
+        let aliases = alias_opts
+            .get("aliases")
+            .and_then(|v| v.as_table())
+            .or_fail_with("aliases is a table")?;
+        check!(aliases.get("Json.Decode").and_then(|v| v.as_str()))
+            .satisfies(eq(Some("Decode")))?;
+        check!(aliases.get("Html.Attributes").and_then(|v| v.as_str()))
+            .satisfies(eq(Some("Attr")))?;
 
         // Unknown rules have no options.
-        assert!(config.rule_options("NoDebug").is_none());
+        check!(config.rule_options("NoDebug").is_none()).satisfies(is_true())?;
+        Ok(())
     }
 
     #[test]
-    fn per_rule_options_coexist_with_disable_and_severity() {
+    fn per_rule_options_coexist_with_disable_and_severity() -> TestResult {
         let config: Config = toml::from_str(
             r#"
 [rules]
@@ -224,11 +240,15 @@ NoDebug = "error"
 max_length = 80
 "#,
         )
-        .unwrap();
+        .or_fail_with("config toml parses")?;
 
-        assert!(config.is_rule_disabled("NoTodoComment"));
-        assert_eq!(config.severity_for("NoDebug"), Some(Severity::Error));
-        let opts = config.rule_options("NoMaxLineLength").unwrap();
-        assert_eq!(opts.get("max_length").unwrap().as_integer(), Some(80));
+        check!(config.is_rule_disabled("NoTodoComment")).satisfies(is_true())?;
+        check!(config.severity_for("NoDebug")).satisfies(eq(Some(Severity::Error)))?;
+        let opts = config
+            .rule_options("NoMaxLineLength")
+            .or_fail_with("NoMaxLineLength options present")?;
+        check!(opts.get("max_length").and_then(|v| v.as_integer()))
+            .satisfies(eq(Some(80)))?;
+        Ok(())
     }
 }

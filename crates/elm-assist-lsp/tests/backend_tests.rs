@@ -23,7 +23,8 @@ type Messages = Arc<Mutex<Vec<serde_json::Value>>>;
 
 /// Create an LspService, spawn a socket drainer, drive the initialize
 /// handshake, and return everything ready for use.
-async fn init_service() -> (LspService<Backend>, Messages, InitializeResult) {
+async fn init_service()
+-> Result<(LspService<Backend>, Messages, InitializeResult), TestError> {
     let (mut service, socket) = LspService::new(Backend::new);
 
     // Split the socket: read server-to-client messages from the stream,
@@ -34,7 +35,10 @@ async fn init_service() -> (LspService<Backend>, Messages, InitializeResult) {
     tokio::spawn(async move {
         let (mut requests, mut responses) = socket.split();
         while let Some(msg) = requests.next().await {
-            let json = serde_json::to_value(&msg).unwrap();
+            // If serialization ever fails, drop the message rather than panic.
+            let Ok(json) = serde_json::to_value(&msg) else {
+                continue;
+            };
 
             // If the message has an id, it's a server-to-client request that
             // expects a response. Send back an OK result.
@@ -48,41 +52,53 @@ async fn init_service() -> (LspService<Backend>, Messages, InitializeResult) {
     });
 
     let init_params = InitializeParams {
-        root_uri: Some(Url::parse("file:///tmp/test-project").unwrap()),
+        root_uri: Some(
+            Url::parse("file:///tmp/test-project").or_fail_with("parse project URI")?,
+        ),
         capabilities: ClientCapabilities::default(),
         ..Default::default()
     };
 
     let req = Request::build("initialize")
-        .params(serde_json::to_value(init_params).unwrap())
+        .params(serde_json::to_value(init_params).map_err(|e| fail(format!("serialize init params: {e}")))?)
         .id(1)
         .finish();
 
-    let resp = service.call(req).await.unwrap();
-    let init_result: InitializeResult =
-        serde_json::from_value(response_result(resp)).expect("valid InitializeResult");
+    let resp = service
+        .call(req)
+        .await
+        .map_err(|e| fail(format!("initialize call failed: {e}")))?;
+    let init_result: InitializeResult = serde_json::from_value(response_result(resp)?)
+        .map_err(|e| fail(format!("valid InitializeResult: {e}")))?;
 
     // Send initialized notification.
     let notif = Request::build("initialized")
-        .params(serde_json::to_value(InitializedParams {}).unwrap())
+        .params(
+            serde_json::to_value(InitializedParams {})
+                .map_err(|e| fail(format!("serialize initialized params: {e}")))?,
+        )
         .finish();
     let _ = service.call(notif).await;
 
     // Let the initialized handler complete (it registers watchers + publishes initial diagnostics).
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    (service, messages, init_result)
+    Ok((service, messages, init_result))
 }
 
 /// Extract the result field from a JSON-RPC response.
-fn response_result(resp: Option<Response>) -> serde_json::Value {
-    let resp = resp.expect("expected a response");
-    let json = serde_json::to_value(resp).unwrap();
-    json["result"].clone()
+fn response_result(resp: Option<Response>) -> Result<serde_json::Value, TestError> {
+    let resp = resp.or_fail_with("expected a response")?;
+    let json = serde_json::to_value(resp).map_err(|e| fail(format!("serialize response: {e}")))?;
+    Ok(json["result"].clone())
 }
 
 /// Send a didOpen notification.
-async fn did_open(service: &mut LspService<Backend>, uri: &Url, text: &str) {
+async fn did_open(
+    service: &mut LspService<Backend>,
+    uri: &Url,
+    text: &str,
+) -> Result<(), TestError> {
     let params = DidOpenTextDocumentParams {
         text_document: TextDocumentItem {
             uri: uri.clone(),
@@ -92,13 +108,22 @@ async fn did_open(service: &mut LspService<Backend>, uri: &Url, text: &str) {
         },
     };
     let req = Request::build("textDocument/didOpen")
-        .params(serde_json::to_value(params).unwrap())
+        .params(
+            serde_json::to_value(params)
+                .map_err(|e| fail(format!("serialize didOpen params: {e}")))?,
+        )
         .finish();
     let _ = service.call(req).await;
+    Ok(())
 }
 
 /// Send a didChange notification.
-async fn did_change(service: &mut LspService<Backend>, uri: &Url, text: &str, version: i32) {
+async fn did_change(
+    service: &mut LspService<Backend>,
+    uri: &Url,
+    text: &str,
+    version: i32,
+) -> Result<(), TestError> {
     let params = DidChangeTextDocumentParams {
         text_document: VersionedTextDocumentIdentifier {
             uri: uri.clone(),
@@ -111,9 +136,13 @@ async fn did_change(service: &mut LspService<Backend>, uri: &Url, text: &str, ve
         }],
     };
     let req = Request::build("textDocument/didChange")
-        .params(serde_json::to_value(params).unwrap())
+        .params(
+            serde_json::to_value(params)
+                .map_err(|e| fail(format!("serialize didChange params: {e}")))?,
+        )
         .finish();
     let _ = service.call(req).await;
+    Ok(())
 }
 
 /// Wait for diagnostics and collect publishDiagnostics params for a given URI.
@@ -150,7 +179,7 @@ async fn shutdown(service: &mut LspService<Backend>) {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn initialize_returns_capabilities() -> TestResult {
-    let (mut service, _, result) = init_service().await;
+    let (mut service, _, result) = init_service().await?;
 
     check!(result.capabilities.text_document_sync).satisfies(eq(Some(
         TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL),
@@ -172,14 +201,14 @@ async fn initialize_returns_capabilities() -> TestResult {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn did_open_publishes_diagnostics() -> TestResult {
-    let (mut service, messages, _) = init_service().await;
+    let (mut service, messages, _) = init_service().await?;
 
     let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
         .or_fail_with("parse URI")?;
     let source = "module Test exposing (..)\n\nimport Html\n\nx = 1\n";
 
     clear_messages(&messages).await;
-    did_open(&mut service, &uri, source).await;
+    did_open(&mut service, &uri, source).await?;
 
     let diags = wait_for_diagnostics(&messages, &uri, 300).await;
     check!(!diags.is_empty())
@@ -200,7 +229,7 @@ async fn did_open_publishes_diagnostics() -> TestResult {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn did_change_updates_diagnostics() -> TestResult {
-    let (mut service, messages, _) = init_service().await;
+    let (mut service, messages, _) = init_service().await?;
 
     let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
         .or_fail_with("parse URI")?;
@@ -211,7 +240,7 @@ async fn did_change_updates_diagnostics() -> TestResult {
         &uri,
         "module Test exposing (..)\n\nimport Html\n\nx = 1\n",
     )
-    .await;
+    .await?;
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Clear and change to remove the unused import.
@@ -222,7 +251,7 @@ async fn did_change_updates_diagnostics() -> TestResult {
         "module Test exposing (..)\n\nx = 1\n",
         2,
     )
-    .await;
+    .await?;
 
     let diags = wait_for_diagnostics(&messages, &uri, 500).await;
 
@@ -243,7 +272,7 @@ async fn did_change_updates_diagnostics() -> TestResult {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn did_close_clears_diagnostics() -> TestResult {
-    let (mut service, messages, _) = init_service().await;
+    let (mut service, messages, _) = init_service().await?;
 
     let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
         .or_fail_with("parse URI")?;
@@ -253,7 +282,7 @@ async fn did_close_clears_diagnostics() -> TestResult {
         &uri,
         "module Test exposing (..)\n\nimport Html\n\nx = 1\n",
     )
-    .await;
+    .await?;
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Close the document.
@@ -262,7 +291,10 @@ async fn did_close_clears_diagnostics() -> TestResult {
         text_document: TextDocumentIdentifier { uri: uri.clone() },
     };
     let req = Request::build("textDocument/didClose")
-        .params(serde_json::to_value(params).unwrap())
+        .params(
+            serde_json::to_value(params)
+                .map_err(|e| fail(format!("serialize didClose params: {e}")))?,
+        )
         .finish();
     let _ = service.call(req).await;
 
@@ -279,13 +311,13 @@ async fn did_close_clears_diagnostics() -> TestResult {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn hover_on_diagnostic_returns_rule_info() -> TestResult {
-    let (mut service, _messages, _) = init_service().await;
+    let (mut service, _messages, _) = init_service().await?;
 
     let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
         .or_fail_with("parse URI")?;
     let source = "module Test exposing (..)\n\nx = Debug.log \"hi\" 1\n";
 
-    did_open(&mut service, &uri, source).await;
+    did_open(&mut service, &uri, source).await?;
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Hover over "Debug.log" (line 2, around col 6 in 0-based).
@@ -301,12 +333,15 @@ async fn hover_on_diagnostic_returns_rule_info() -> TestResult {
     };
 
     let req = Request::build("textDocument/hover")
-        .params(serde_json::to_value(hover_params).unwrap())
+        .params(
+            serde_json::to_value(hover_params)
+                .map_err(|e| fail(format!("serialize hover params: {e}")))?,
+        )
         .id(10)
         .finish();
 
-    let resp = service.call(req).await.unwrap();
-    let result = response_result(resp);
+    let resp = service.call(req).await.map_err(|e| fail(format!("call failed: {e}")))?;
+    let result = response_result(resp)?;
 
     check!(!result.is_null())
         .satisfies(is_true())
@@ -330,13 +365,13 @@ async fn hover_on_diagnostic_returns_rule_info() -> TestResult {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn hover_outside_diagnostic_returns_null() -> TestResult {
-    let (mut service, _, _) = init_service().await;
+    let (mut service, _, _) = init_service().await?;
 
     let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
         .or_fail_with("parse URI")?;
     let source = "module Test exposing (x)\n\n\n{-| A value. -}\nx : Int\nx =\n    1\n";
 
-    did_open(&mut service, &uri, source).await;
+    did_open(&mut service, &uri, source).await?;
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Hover on the value body (line 6, "    1") — should have no diagnostic.
@@ -352,12 +387,15 @@ async fn hover_outside_diagnostic_returns_null() -> TestResult {
     };
 
     let req = Request::build("textDocument/hover")
-        .params(serde_json::to_value(hover_params).unwrap())
+        .params(
+            serde_json::to_value(hover_params)
+                .map_err(|e| fail(format!("serialize hover params: {e}")))?,
+        )
         .id(11)
         .finish();
 
-    let resp = service.call(req).await.unwrap();
-    let result = response_result(resp);
+    let resp = service.call(req).await.map_err(|e| fail(format!("call failed: {e}")))?;
+    let result = response_result(resp)?;
     check!(result.is_null())
         .satisfies(is_true())
         .context("hover outside diagnostic should be null")?;
@@ -368,14 +406,14 @@ async fn hover_outside_diagnostic_returns_null() -> TestResult {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_action_returns_fix() -> TestResult {
-    let (mut service, messages, _) = init_service().await;
+    let (mut service, messages, _) = init_service().await?;
 
     let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
         .or_fail_with("parse URI")?;
     // NoUnusedImports has a fix (removing the import line).
     let source = "module Test exposing (..)\n\nimport Html\n\nx = 1\n";
 
-    did_open(&mut service, &uri, source).await;
+    did_open(&mut service, &uri, source).await?;
     let diags = wait_for_diagnostics(&messages, &uri, 300).await;
 
     let all_diags: Vec<_> = diags.iter().flat_map(|d| d.diagnostics.clone()).collect();
@@ -403,12 +441,15 @@ async fn code_action_returns_fix() -> TestResult {
         };
 
         let req = Request::build("textDocument/codeAction")
-            .params(serde_json::to_value(params).unwrap())
+            .params(
+                serde_json::to_value(params)
+                    .map_err(|e| fail(format!("serialize codeAction params: {e}")))?,
+            )
             .id(20)
             .finish();
 
-        let resp = service.call(req).await.unwrap();
-        let result = response_result(resp);
+        let resp = service.call(req).await.map_err(|e| fail(format!("call failed: {e}")))?;
+        let result = response_result(resp)?;
 
         check!(!result.is_null()).satisfies(is_true()).context(format!(
             "should return code actions for range {:?}, diag code: {:?}",
@@ -439,13 +480,13 @@ async fn code_action_returns_fix() -> TestResult {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_action_on_clean_range_returns_none() -> TestResult {
-    let (mut service, _, _) = init_service().await;
+    let (mut service, _, _) = init_service().await?;
 
     let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
         .or_fail_with("parse URI")?;
     let source = "module Test exposing (x)\n\n\n{-| A value. -}\nx : Int\nx =\n    1\n";
 
-    did_open(&mut service, &uri, source).await;
+    did_open(&mut service, &uri, source).await?;
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     let params = CodeActionParams {
@@ -470,12 +511,15 @@ async fn code_action_on_clean_range_returns_none() -> TestResult {
     };
 
     let req = Request::build("textDocument/codeAction")
-        .params(serde_json::to_value(params).unwrap())
+        .params(
+            serde_json::to_value(params)
+                .map_err(|e| fail(format!("serialize codeAction params: {e}")))?,
+        )
         .id(21)
         .finish();
 
-    let resp = service.call(req).await.unwrap();
-    let result = response_result(resp);
+    let resp = service.call(req).await.map_err(|e| fail(format!("call failed: {e}")))?;
+    let result = response_result(resp)?;
     check!(result.is_null())
         .satisfies(is_true())
         .context("no code actions expected on clean range")?;
@@ -486,14 +530,14 @@ async fn code_action_on_clean_range_returns_none() -> TestResult {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn parse_error_shows_as_diagnostic() -> TestResult {
-    let (mut service, messages, _) = init_service().await;
+    let (mut service, messages, _) = init_service().await?;
 
     let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
         .or_fail_with("parse URI")?;
     let source = "module Test exposing (..)\n\nx = {{{ invalid\n";
 
     clear_messages(&messages).await;
-    did_open(&mut service, &uri, source).await;
+    did_open(&mut service, &uri, source).await?;
 
     let diags = wait_for_diagnostics(&messages, &uri, 300).await;
     let all_diags: Vec<_> = diags.iter().flat_map(|d| &d.diagnostics).collect();
@@ -519,11 +563,11 @@ async fn parse_error_shows_as_diagnostic() -> TestResult {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn shutdown_succeeds() -> TestResult {
-    let (mut service, _, _) = init_service().await;
+    let (mut service, _, _) = init_service().await?;
 
     let req = Request::build("shutdown").id(99).finish();
-    let resp = service.call(req).await.unwrap();
-    let result = response_result(resp);
+    let resp = service.call(req).await.map_err(|e| fail(format!("call failed: {e}")))?;
+    let result = response_result(resp)?;
     check!(result.is_null())
         .satisfies(is_true())
         .context("shutdown should return null")?;

@@ -78,7 +78,14 @@ pub fn parse_files(files: &[PathBuf]) -> ParseResult {
                         source,
                     })
                 }
-                Err(errors) => Err(format!("{}: {}", path_str, errors[0])),
+                Err(errors) => Err(format!(
+                    "{}: {}",
+                    path_str,
+                    errors
+                        .first()
+                        .map(ToString::to_string)
+                        .unwrap_or_else(|| "parse failed".into())
+                )),
             }
         })
         .collect();

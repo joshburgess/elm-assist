@@ -139,10 +139,12 @@ fn render_source_preview(state: &AppState, frame: &mut Frame, area: Rect) {
         let source_lines: Vec<&str> = source.lines().collect();
         let err_line = (err.span.start.line as usize).saturating_sub(1); // 0-indexed
         let ctx: usize = 5;
-        let start = err_line.saturating_sub(ctx);
         let end = (err_line + ctx + 1).min(source_lines.len());
+        let start = err_line.saturating_sub(ctx).min(end);
 
-        source_lines[start..end]
+        source_lines
+            .get(start..end)
+            .unwrap_or(&[])
             .iter()
             .enumerate()
             .map(|(i, line)| {

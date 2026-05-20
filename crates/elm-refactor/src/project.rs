@@ -46,7 +46,11 @@ impl Project {
                     });
                 }
                 Err(errors) => {
-                    eprintln!("  warning: {}: {}", path.display(), errors[0]);
+                    let msg = errors
+                        .first()
+                        .map(ToString::to_string)
+                        .unwrap_or_else(|| "parse failed".into());
+                    eprintln!("  warning: {}: {}", path.display(), msg);
                 }
             }
         }

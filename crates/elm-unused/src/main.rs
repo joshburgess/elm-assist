@@ -47,11 +47,11 @@ fn main() {
                 modules.insert(mod_name, info);
             }
             Err(errors) => {
-                eprintln!(
-                    "  warning: parse error in {}: {}",
-                    file.display(),
-                    errors[0]
-                );
+                let msg = errors
+                    .first()
+                    .map(ToString::to_string)
+                    .unwrap_or_else(|| "parse failed".into());
+                eprintln!("  warning: parse error in {}: {}", file.display(), msg);
                 parse_errors += 1;
             }
         }

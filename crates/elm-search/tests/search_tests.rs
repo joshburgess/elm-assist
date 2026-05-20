@@ -2,11 +2,16 @@ use elm_ast::parse;
 use elm_search::query::parse_query;
 use elm_search::search::search;
 use test_better::prelude::*;
+use test_better::{ErrorKind, TestError};
 
-fn count(source: &str, query_str: &str) -> usize {
-    let module = parse(source).unwrap_or_else(|e| panic!("parse failed: {e:?}"));
-    let query = parse_query(query_str).unwrap();
-    search(&module, &query).len()
+fn fail(msg: impl Into<String>) -> TestError {
+    TestError::new(ErrorKind::Assertion).with_message(msg.into())
+}
+
+fn count(source: &str, query_str: &str) -> Result<usize, TestError> {
+    let module = parse(source).map_err(|e| fail(format!("parse failed: {e:?}")))?;
+    let query = parse_query(query_str).map_err(|e| fail(format!("parse_query failed: {e}")))?;
+    Ok(search(&module, &query).len())
 }
 
 // ── returns ──────────────────────────────────────────────────────────
@@ -22,7 +27,7 @@ get n = Nothing
 set : Int -> String -> String
 set n s = s
 ";
-    check!(count(src, "returns Maybe")).satisfies(eq(1))?;
+    check!(count(src, "returns Maybe")?).satisfies(eq(1))?;
     Ok(())
 }
 
@@ -34,8 +39,8 @@ module Main exposing (..)
 foo : Int -> String
 foo n = \"\"
 ";
-    check!(count(src, "returns String")).satisfies(eq(1))?;
-    check!(count(src, "returns Maybe")).satisfies(eq(0))?;
+    check!(count(src, "returns String")?).satisfies(eq(1))?;
+    check!(count(src, "returns Maybe")?).satisfies(eq(0))?;
     Ok(())
 }
 
@@ -49,8 +54,8 @@ module Main exposing (..)
 decode : Json.Decode.Decoder String -> String
 decode d = \"\"
 ";
-    check!(count(src, "type Decoder")).satisfies(eq(1))?;
-    check!(count(src, "type Int")).satisfies(eq(0))?;
+    check!(count(src, "type Decoder")?).satisfies(eq(1))?;
+    check!(count(src, "type Int")?).satisfies(eq(0))?;
     Ok(())
 }
 
@@ -66,9 +71,9 @@ f x =
         Just v -> v
         Nothing -> 0
 ";
-    check!(count(src, "case-on Just")).satisfies(eq(1))?;
-    check!(count(src, "case-on Nothing")).satisfies(eq(1))?;
-    check!(count(src, "case-on Err")).satisfies(eq(0))?;
+    check!(count(src, "case-on Just")?).satisfies(eq(1))?;
+    check!(count(src, "case-on Nothing")?).satisfies(eq(1))?;
+    check!(count(src, "case-on Err")?).satisfies(eq(0))?;
     Ok(())
 }
 
@@ -81,9 +86,9 @@ module Main exposing (..)
 
 f model = { model | name = \"new\", count = 0 }
 ";
-    check!(count(src, "update .name")).satisfies(eq(1))?;
-    check!(count(src, "update .count")).satisfies(eq(1))?;
-    check!(count(src, "update .age")).satisfies(eq(0))?;
+    check!(count(src, "update .name")?).satisfies(eq(1))?;
+    check!(count(src, "update .count")?).satisfies(eq(1))?;
+    check!(count(src, "update .age")?).satisfies(eq(0))?;
     Ok(())
 }
 
@@ -98,9 +103,9 @@ x = Http.get url
 y = Http.post body
 z = String.length s
 ";
-    check!(count(src, "calls Http")).satisfies(eq(2))?;
-    check!(count(src, "calls String")).satisfies(eq(1))?;
-    check!(count(src, "calls Json")).satisfies(eq(0))?;
+    check!(count(src, "calls Http")?).satisfies(eq(2))?;
+    check!(count(src, "calls String")?).satisfies(eq(1))?;
+    check!(count(src, "calls Json")?).satisfies(eq(0))?;
     Ok(())
 }
 
@@ -114,7 +119,7 @@ module Main exposing (..)
 f x y = x + 1
 ";
     // `y` is unused.
-    check!(count(src, "unused-args")).satisfies(eq(1))?;
+    check!(count(src, "unused-args")?).satisfies(eq(1))?;
     Ok(())
 }
 
@@ -125,7 +130,7 @@ module Main exposing (..)
 
 f x y = x + y
 ";
-    check!(count(src, "unused-args")).satisfies(eq(0))?;
+    check!(count(src, "unused-args")?).satisfies(eq(0))?;
     Ok(())
 }
 
@@ -140,9 +145,9 @@ f = \\a b c -> a + b + c
 
 g = \\x -> x
 ";
-    check!(count(src, "lambda 3")).satisfies(eq(1))?;
-    check!(count(src, "lambda 1")).satisfies(eq(2))?;
-    check!(count(src, "lambda 4")).satisfies(eq(0))?;
+    check!(count(src, "lambda 3")?).satisfies(eq(1))?;
+    check!(count(src, "lambda 1")?).satisfies(eq(2))?;
+    check!(count(src, "lambda 4")?).satisfies(eq(0))?;
     Ok(())
 }
 
@@ -157,8 +162,8 @@ f x = List.map g x
 
 g y = y + 1
 ";
-    check!(count(src, "uses g")).satisfies(eq(1))?; // reference in List.map g x
-    check!(count(src, "uses map")).satisfies(eq(1))?;
+    check!(count(src, "uses g")?).satisfies(eq(1))?; // reference in List.map g x
+    check!(count(src, "uses map")?).satisfies(eq(1))?;
     Ok(())
 }
 
@@ -175,9 +180,9 @@ viewModel y = y
 
 helper z = z
 ";
-    check!(count(src, "def Model")).satisfies(eq(2))?; // updateModel, viewModel
-    check!(count(src, "def helper")).satisfies(eq(1))?;
-    check!(count(src, "def nope")).satisfies(eq(0))?;
+    check!(count(src, "def Model")?).satisfies(eq(2))?; // updateModel, viewModel
+    check!(count(src, "def helper")?).satisfies(eq(1))?;
+    check!(count(src, "def nope")?).satisfies(eq(0))?;
     Ok(())
 }
 
@@ -194,8 +199,8 @@ f x =
     in
     x + y
 ";
-    check!(count(src, "expr let")).satisfies(eq(1))?;
-    check!(count(src, "expr case")).satisfies(eq(0))?;
+    check!(count(src, "expr let")?).satisfies(eq(1))?;
+    check!(count(src, "expr case")?).satisfies(eq(0))?;
     Ok(())
 }
 
@@ -207,7 +212,7 @@ module Main exposing (..)
 f = \\x -> x
 g = List.map (\\y -> y + 1) list
 ";
-    check!(count(src, "expr lambda")).satisfies(eq(2))?;
+    check!(count(src, "expr lambda")?).satisfies(eq(2))?;
     Ok(())
 }
 

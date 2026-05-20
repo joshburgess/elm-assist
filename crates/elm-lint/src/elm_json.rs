@@ -35,6 +35,15 @@ impl std::fmt::Display for ElmJsonError {
     }
 }
 
+impl std::error::Error for ElmJsonError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            ElmJsonError::Io(e) => Some(e),
+            ElmJsonError::Parse(e) => Some(e),
+        }
+    }
+}
+
 /// Load and parse elm.json from the given directory (or its parents),
 /// then resolve package modules from the Elm cache.
 pub fn load_elm_json(start_dir: &Path) -> Result<ElmJsonInfo, ElmJsonError> {
@@ -287,9 +296,10 @@ pub fn packages_used_by_imports(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_better::prelude::*;
 
     #[test]
-    fn parse_application_elm_json() {
+    fn parse_application_elm_json() -> TestResult {
         let json = r#"{
             "type": "application",
             "source-directories": ["src"],
@@ -310,16 +320,17 @@ mod tests {
             }
         }"#;
 
-        let info = parse_elm_json(json).unwrap();
-        assert!(info.is_application);
-        assert_eq!(info.direct_deps.len(), 3);
-        assert!(info.direct_deps.contains_key("elm/core"));
-        assert!(info.direct_deps.contains_key("elm/html"));
-        assert!(info.direct_deps.contains_key("elm/json"));
+        let info = parse_elm_json(json).or_fail_with("elm.json parses")?;
+        check!(info.is_application).satisfies(is_true())?;
+        check!(info.direct_deps.len()).satisfies(eq(3))?;
+        check!(info.direct_deps.contains_key("elm/core")).satisfies(is_true())?;
+        check!(info.direct_deps.contains_key("elm/html")).satisfies(is_true())?;
+        check!(info.direct_deps.contains_key("elm/json")).satisfies(is_true())?;
+        Ok(())
     }
 
     #[test]
-    fn parse_package_elm_json() {
+    fn parse_package_elm_json() -> TestResult {
         let json = r#"{
             "type": "package",
             "name": "author/my-package",
@@ -335,24 +346,26 @@ mod tests {
             "test-dependencies": {}
         }"#;
 
-        let info = parse_elm_json(json).unwrap();
-        assert!(!info.is_application);
-        assert_eq!(info.direct_deps.len(), 2);
-        assert!(info.direct_deps.contains_key("elm/core"));
+        let info = parse_elm_json(json).or_fail_with("elm.json parses")?;
+        check!(info.is_application).satisfies(is_false())?;
+        check!(info.direct_deps.len()).satisfies(eq(2))?;
+        check!(info.direct_deps.contains_key("elm/core")).satisfies(is_true())?;
+        Ok(())
     }
 
     #[test]
-    fn parse_exposed_modules_flat_list() {
+    fn parse_exposed_modules_flat_list() -> TestResult {
         let json = r#"{
             "type": "package",
             "exposed-modules": ["Json.Decode", "Json.Encode"]
         }"#;
-        let modules = parse_exposed_modules(json).unwrap();
-        assert_eq!(modules, vec!["Json.Decode", "Json.Encode"]);
+        let modules = parse_exposed_modules(json).or_fail_with("exposed-modules parses")?;
+        check!(modules).satisfies(eq(vec!["Json.Decode".to_string(), "Json.Encode".to_string()]))?;
+        Ok(())
     }
 
     #[test]
-    fn parse_exposed_modules_categorized() {
+    fn parse_exposed_modules_categorized() -> TestResult {
         let json = r#"{
             "type": "package",
             "exposed-modules": {
@@ -360,9 +373,10 @@ mod tests {
                 "Encode": ["Json.Encode"]
             }
         }"#;
-        let modules = parse_exposed_modules(json).unwrap();
-        assert!(modules.contains(&"Json.Decode".to_string()));
-        assert!(modules.contains(&"Json.Encode".to_string()));
+        let modules = parse_exposed_modules(json).or_fail_with("exposed-modules parses")?;
+        check!(modules.contains(&"Json.Decode".to_string())).satisfies(is_true())?;
+        check!(modules.contains(&"Json.Encode".to_string())).satisfies(is_true())?;
+        Ok(())
     }
 
     #[test]

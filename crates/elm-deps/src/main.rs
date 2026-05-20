@@ -73,7 +73,11 @@ fn main() {
                 graph.insert(mod_name, imports);
             }
             Err(errors) => {
-                eprintln!("  warning: {}: {}", file.display(), errors[0]);
+                let msg = errors
+                    .first()
+                    .map(ToString::to_string)
+                    .unwrap_or_else(|| "parse failed".into());
+                eprintln!("  warning: {}: {}", file.display(), msg);
                 parse_errors += 1;
             }
         }

@@ -36,18 +36,18 @@ fn make_state() -> ServerState {
     }
 }
 
-fn make_state_with_source(source: &str) -> (ServerState, Url) {
-    let uri = Url::parse("file:///test/src/Test.elm").or_fail_with("parse URI").unwrap();
+fn make_state_with_source(source: &str) -> Result<(ServerState, Url), TestError> {
+    let uri = Url::parse("file:///test/src/Test.elm").or_fail_with("parse URI")?;
     let mut state = make_state();
     state.update_document(&uri, source.to_string(), 1);
     state.rebuild_project_context();
-    (state, uri)
+    Ok((state, uri))
 }
 
 #[test]
 fn lint_detects_unused_import() -> TestResult {
     let source = "module Test exposing (..)\n\nimport Html\n\nx = 1\n";
-    let (state, uri) = make_state_with_source(source);
+    let (state, uri) = make_state_with_source(source)?;
 
     let errors = analysis::lint_document(&state, &uri);
 
@@ -62,7 +62,7 @@ fn lint_detects_unused_import() -> TestResult {
 #[test]
 fn lint_detects_debug_log() -> TestResult {
     let source = "module Test exposing (..)\n\nx = Debug.log \"hi\" 1\n";
-    let (state, uri) = make_state_with_source(source);
+    let (state, uri) = make_state_with_source(source)?;
 
     let errors = analysis::lint_document(&state, &uri);
 
@@ -77,7 +77,7 @@ fn lint_detects_debug_log() -> TestResult {
 #[test]
 fn lint_clean_file_has_no_errors() -> TestResult {
     let source = "module Test exposing (x)\n\n\n{-| A value. -}\nx : Int\nx =\n    1\n";
-    let (state, uri) = make_state_with_source(source);
+    let (state, uri) = make_state_with_source(source)?;
 
     let errors = analysis::lint_document(&state, &uri);
 
@@ -107,7 +107,7 @@ fn lint_clean_file_has_no_errors() -> TestResult {
 #[test]
 fn lint_unparseable_file_returns_empty_lint_errors() -> TestResult {
     let source = "this is not valid elm at all {{{";
-    let (state, uri) = make_state_with_source(source);
+    let (state, uri) = make_state_with_source(source)?;
 
     let errors = analysis::lint_document(&state, &uri);
     check!(errors.is_empty())
@@ -119,7 +119,7 @@ fn lint_unparseable_file_returns_empty_lint_errors() -> TestResult {
 #[test]
 fn unparseable_file_has_parse_errors() -> TestResult {
     let source = "this is not valid elm at all {{{";
-    let (state, uri) = make_state_with_source(source);
+    let (state, uri) = make_state_with_source(source)?;
 
     let doc = state.documents.get(&uri).or_fail_with("document in state")?;
     check!(!doc.parse_errors.is_empty())
@@ -132,7 +132,7 @@ fn unparseable_file_has_parse_errors() -> TestResult {
 fn parse_recovering_provides_partial_ast() -> TestResult {
     // Valid module header and one valid declaration, with invalid syntax after.
     let source = "module Test exposing (x)\n\n\nx =\n    1\n\n\ny = {{{ invalid\n";
-    let (state, uri) = make_state_with_source(source);
+    let (state, uri) = make_state_with_source(source)?;
 
     let doc = state.documents.get(&uri).or_fail_with("document in state")?;
 

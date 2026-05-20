@@ -18,6 +18,8 @@ impl std::fmt::Display for FixError {
     }
 }
 
+impl std::error::Error for FixError {}
+
 /// Apply a set of edits to source text, returning the modified source.
 ///
 /// Edits are applied from the end of the file backwards so that byte offsets
@@ -95,6 +97,7 @@ pub fn remove_line(source: &str, edit: &Edit) -> Edit {
 mod tests {
     use super::*;
     use elm_ast::span::{Position, Span};
+    use test_better::prelude::*;
 
     fn span(start: usize, end: usize) -> Span {
         Span {
@@ -112,37 +115,40 @@ mod tests {
     }
 
     #[test]
-    fn single_replace() {
+    fn single_replace() -> TestResult {
         let source = "hello world";
         let edits = vec![Edit::Replace {
             span: span(6, 11),
             replacement: "rust".into(),
         }];
-        assert_eq!(apply_fixes(source, &edits).unwrap(), "hello rust");
+        let out = apply_fixes(source, &edits).or_fail_with("apply_fixes succeeds")?;
+        check!(out.as_str()).satisfies(eq("hello rust"))?;
+        Ok(())
     }
 
     #[test]
-    fn single_remove() {
+    fn single_remove() -> TestResult {
         let source = "hello world";
         let edits = vec![Edit::Remove { span: span(5, 11) }];
-        assert_eq!(apply_fixes(source, &edits).unwrap(), "hello");
+        let out = apply_fixes(source, &edits).or_fail_with("apply_fixes succeeds")?;
+        check!(out.as_str()).satisfies(eq("hello"))?;
+        Ok(())
     }
 
     #[test]
-    fn single_insert_after() {
+    fn single_insert_after() -> TestResult {
         let source = "hello world";
         let edits = vec![Edit::InsertAfter {
             span: span(5, 5),
             text: " beautiful".into(),
         }];
-        assert_eq!(
-            apply_fixes(source, &edits).unwrap(),
-            "hello beautiful world"
-        );
+        let out = apply_fixes(source, &edits).or_fail_with("apply_fixes succeeds")?;
+        check!(out.as_str()).satisfies(eq("hello beautiful world"))?;
+        Ok(())
     }
 
     #[test]
-    fn multiple_non_overlapping() {
+    fn multiple_non_overlapping() -> TestResult {
         let source = "aaa bbb ccc";
         let edits = vec![
             Edit::Replace {
@@ -154,11 +160,13 @@ mod tests {
                 replacement: "CCC".into(),
             },
         ];
-        assert_eq!(apply_fixes(source, &edits).unwrap(), "AAA bbb CCC");
+        let out = apply_fixes(source, &edits).or_fail_with("apply_fixes succeeds")?;
+        check!(out.as_str()).satisfies(eq("AAA bbb CCC"))?;
+        Ok(())
     }
 
     #[test]
-    fn overlapping_edits_rejected() {
+    fn overlapping_edits_rejected() -> TestResult {
         let source = "hello world";
         let edits = vec![
             Edit::Replace {
@@ -170,34 +178,41 @@ mod tests {
                 replacement: "there".into(),
             },
         ];
-        assert!(matches!(
+        check!(matches!(
             apply_fixes(source, &edits),
             Err(FixError::OverlappingEdits)
-        ));
+        ))
+        .satisfies(is_true())?;
+        Ok(())
     }
 
     #[test]
-    fn out_of_bounds_rejected() {
+    fn out_of_bounds_rejected() -> TestResult {
         let source = "hello";
         let edits = vec![Edit::Remove { span: span(0, 100) }];
-        assert!(matches!(
+        check!(matches!(
             apply_fixes(source, &edits),
             Err(FixError::OutOfBounds)
-        ));
+        ))
+        .satisfies(is_true())?;
+        Ok(())
     }
 
     #[test]
-    fn empty_edits() {
+    fn empty_edits() -> TestResult {
         let source = "hello";
-        assert_eq!(apply_fixes(source, &[]).unwrap(), "hello");
+        let out = apply_fixes(source, &[]).or_fail_with("apply_fixes succeeds")?;
+        check!(out.as_str()).satisfies(eq("hello"))?;
+        Ok(())
     }
 
     #[test]
-    fn remove_line_extends_past_newline() {
+    fn remove_line_extends_past_newline() -> TestResult {
         let source = "line1\nline2\nline3";
         let edit = Edit::Remove { span: span(0, 5) };
         let extended = remove_line(source, &edit);
-        let result = apply_fixes(source, &[extended]).unwrap();
-        assert_eq!(result, "line2\nline3");
+        let result = apply_fixes(source, &[extended]).or_fail_with("apply_fixes succeeds")?;
+        check!(result.as_str()).satisfies(eq("line2\nline3"))?;
+        Ok(())
     }
 }

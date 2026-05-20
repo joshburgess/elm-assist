@@ -37,10 +37,12 @@ pub fn render_source_preview(preview: &SourcePreview, frame: &mut Frame, area: R
     let source_lines: Vec<&str> = preview.source.lines().collect();
     let target = preview.line.saturating_sub(1);
     let ctx: usize = 5;
-    let start = target.saturating_sub(ctx);
     let end = (target + ctx + 1).min(source_lines.len());
+    let start = target.saturating_sub(ctx).min(end);
 
-    let lines: Vec<Line> = source_lines[start..end]
+    let lines: Vec<Line> = source_lines
+        .get(start..end)
+        .unwrap_or(&[])
         .iter()
         .enumerate()
         .map(|(i, line)| {

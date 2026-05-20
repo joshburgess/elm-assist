@@ -88,7 +88,9 @@ impl ServerState {
             let Ok(source) = fs::read_to_string(file_path) else {
                 continue;
             };
-            let uri = file_path_to_uri(file_path);
+            let Some(uri) = file_path_to_uri(file_path) else {
+                continue;
+            };
             let doc = parse_document(source, 0);
             documents.insert(uri, doc);
         }
@@ -352,11 +354,12 @@ fn collect_elm_files(dir: &Path, files: &mut Vec<PathBuf>) {
 }
 
 /// Convert a file path to a file:// URI.
-pub fn file_path_to_uri(path: &Path) -> Url {
-    Url::from_file_path(path).unwrap_or_else(|_| {
-        // Fallback: construct manually.
-        Url::parse(&format!("file://{}", path.display())).expect("valid URI")
-    })
+/// Returns `None` if the path cannot be expressed as a valid file URI.
+pub fn file_path_to_uri(path: &Path) -> Option<Url> {
+    if let Ok(url) = Url::from_file_path(path) {
+        return Some(url);
+    }
+    Url::parse(&format!("file://{}", path.display())).ok()
 }
 
 /// Convert a file:// URI to a file path string.

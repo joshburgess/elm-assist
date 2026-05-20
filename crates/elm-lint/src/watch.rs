@@ -12,7 +12,7 @@ where
     let (tx, rx) = mpsc::channel();
 
     let tx_clone = tx.clone();
-    let mut watcher = RecommendedWatcher::new(
+    let mut watcher = match RecommendedWatcher::new(
         move |res: Result<notify::Event, notify::Error>| {
             if let Ok(event) = res {
                 // Only forward events for .elm files.
@@ -26,12 +26,18 @@ where
             }
         },
         Config::default(),
-    )
-    .expect("failed to create file watcher");
+    ) {
+        Ok(w) => w,
+        Err(e) => {
+            eprintln!("Error: failed to create file watcher: {e}");
+            std::process::exit(1);
+        }
+    };
 
-    watcher
-        .watch(Path::new(dir), RecursiveMode::Recursive)
-        .expect("failed to watch directory");
+    if let Err(e) = watcher.watch(Path::new(dir), RecursiveMode::Recursive) {
+        eprintln!("Error: failed to watch directory '{dir}': {e}");
+        std::process::exit(1);
+    }
 
     // Initial run.
     clear_screen();
