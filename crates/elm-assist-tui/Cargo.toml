@@ -26,3 +26,6 @@ elm-unused = { path = "../elm-unused" }
 elm-deps = { path = "../elm-deps" }
 elm-search = { path = "../elm-search" }
 elm-refactor = { path = "../elm-refactor" }
+
+[dev-dependencies]
+test-better = "0.2.2"

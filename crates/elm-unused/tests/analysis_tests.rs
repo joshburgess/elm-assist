@@ -3,6 +3,7 @@
 // using elm-ast-rs and the analysis logic inline.
 
 use elm_ast::parse;
+use test_better::prelude::*;
 
 /// Helper: parse source, collect info, and return the module info.
 fn parse_module(source: &str) -> elm_ast::file::ElmModule {
@@ -32,7 +33,7 @@ impl Visit for IdentCollector {
 }
 
 #[test]
-fn detects_unused_import() {
+fn detects_unused_import() -> TestResult {
     let m = parse_module(
         "\
 module Main exposing (..)
@@ -44,16 +45,17 @@ x = 1
 ",
     );
     // Neither Html nor Json.Decode are used — a tool should flag both.
-    assert_eq!(m.imports.len(), 2);
+    check!(m.imports.len()).satisfies(eq(2))?;
 
     let mut collector = IdentCollector(Vec::new());
     collector.visit_module(&m);
     // No references to Html or Json.Decode functions.
-    assert!(!collector.0.iter().any(|n| n == "Html" || n == "Json"));
+    check!(collector.0.iter().any(|n| n == "Html" || n == "Json")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn used_import_not_flagged() {
+fn used_import_not_flagged() -> TestResult {
     let m = parse_module(
         "\
 module Main exposing (..)
@@ -67,11 +69,12 @@ x = Html.div
     let mut collector = IdentCollector(Vec::new());
     collector.visit_module(&m);
     // The qualified ref "Html" appears in the AST.
-    assert_eq!(m.imports.len(), 1);
+    check!(m.imports.len()).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn detects_unused_function() {
+fn detects_unused_function() -> TestResult {
     let m = parse_module(
         "\
 module Main exposing (used)
@@ -90,17 +93,18 @@ unused = 2
             _ => None,
         })
         .collect();
-    assert!(defined.contains(&"used"));
-    assert!(defined.contains(&"unused"));
+    check!(defined.contains(&"used")).satisfies(is_true())?;
+    check!(defined.contains(&"unused")).satisfies(is_true())?;
 
     let mut collector = IdentCollector(Vec::new());
     collector.visit_module(&m);
     // `unused` is never referenced in any expression.
-    assert!(!collector.0.contains(&"unused".to_string()));
+    check!(collector.0.contains(&"unused".to_string())).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn detects_unused_constructor() {
+fn detects_unused_constructor() -> TestResult {
     let m = parse_module(
         "\
 module Main exposing (..)
@@ -113,12 +117,13 @@ x = Used
     let mut collector = IdentCollector(Vec::new());
     collector.visit_module(&m);
     // Only `Used` appears in expressions.
-    assert!(collector.0.contains(&"Used".to_string()));
-    assert!(!collector.0.contains(&"Unused".to_string()));
+    check!(collector.0.contains(&"Used".to_string())).satisfies(is_true())?;
+    check!(collector.0.contains(&"Unused".to_string())).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn detects_unused_type() {
+fn detects_unused_type() -> TestResult {
     let m = parse_module(
         "\
 module Main exposing (..)
@@ -147,7 +152,8 @@ x = 1
 
     let mut collector = TypeCollector(Vec::new());
     collector.visit_module(&m);
-    assert!(collector.0.contains(&"UsedType".to_string()));
-    assert!(collector.0.contains(&"Int".to_string()));
-    assert!(!collector.0.contains(&"UnusedType".to_string()));
+    check!(collector.0.contains(&"UsedType".to_string())).satisfies(is_true())?;
+    check!(collector.0.contains(&"Int".to_string())).satisfies(is_true())?;
+    check!(collector.0.contains(&"UnusedType".to_string())).satisfies(is_false())?;
+    Ok(())
 }

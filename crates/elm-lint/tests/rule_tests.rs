@@ -6,6 +6,8 @@ use elm_lint::elm_json::ElmJsonInfo;
 use elm_lint::fix::apply_fixes;
 use elm_lint::rule::{LintContext, LintError, ProjectContext, Rule};
 use elm_lint::rules;
+use test_better::ErrorKind;
+use test_better::prelude::*;
 
 fn lint(source: &str, rule: &dyn Rule) -> Vec<String> {
     let module = parse(source).unwrap_or_else(|e| panic!("parse failed: {e:?}"));
@@ -27,221 +29,243 @@ fn lint_count(source: &str, rule: &dyn Rule) -> usize {
 // ── NoUnusedImports ──────────────────────────────────────────────────
 
 #[test]
-fn no_unused_imports_flags_unused() {
+fn no_unused_imports_flags_unused() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nimport Html\n\nx = 1",
         &rules::no_unused_imports::NoUnusedImports,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_imports_passes_qualified() {
+fn no_unused_imports_passes_qualified() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nimport Html\n\nx = Html.div",
         &rules::no_unused_imports::NoUnusedImports,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_imports_passes_exposed() {
+fn no_unused_imports_passes_exposed() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nimport Html exposing (div)\n\nx = div",
         &rules::no_unused_imports::NoUnusedImports,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoDebug ──────────────────────────────────────────────────────────
 
 #[test]
-fn no_debug_flags_log() {
+fn no_debug_flags_log() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = Debug.log \"hi\" 1",
         &rules::no_debug::NoDebug,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_debug_flags_todo() {
+fn no_debug_flags_todo() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = Debug.todo \"nope\"",
         &rules::no_debug::NoDebug,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_debug_passes_clean_code() {
+fn no_debug_passes_clean_code() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = 1 + 2",
         &rules::no_debug::NoDebug,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoMissingTypeAnnotation ──────────────────────────────────────────
 
 #[test]
-fn no_missing_type_annotation_flags_missing() {
+fn no_missing_type_annotation_flags_missing() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nadd x y = x + y",
         &rules::no_missing_type_annotation::NoMissingTypeAnnotation,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_missing_type_annotation_passes_annotated() {
+fn no_missing_type_annotation_passes_annotated() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nadd : Int -> Int -> Int\nadd x y = x + y",
         &rules::no_missing_type_annotation::NoMissingTypeAnnotation,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoSinglePatternCase ──────────────────────────────────────────────
 
 #[test]
-fn no_single_pattern_case_flags_single() {
+fn no_single_pattern_case_flags_single() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx =\n    case y of\n        _ ->\n            1",
         &rules::no_single_pattern_case::NoSinglePatternCase,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_single_pattern_case_passes_multiple() {
+fn no_single_pattern_case_passes_multiple() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx =\n    case y of\n        True ->\n            1\n        False ->\n            0",
         &rules::no_single_pattern_case::NoSinglePatternCase,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoBooleanCase ────────────────────────────────────────────────────
 
 #[test]
-fn no_boolean_case_flags_true_false() {
+fn no_boolean_case_flags_true_false() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx =\n    case y of\n        True ->\n            1\n        False ->\n            0",
         &rules::no_boolean_case::NoBooleanCase,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_boolean_case_passes_non_bool() {
+fn no_boolean_case_passes_non_bool() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx =\n    case y of\n        Just a ->\n            a\n        Nothing ->\n            0",
         &rules::no_boolean_case::NoBooleanCase,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoIfTrueFalse ────────────────────────────────────────────────────
 
 #[test]
-fn no_if_true_false_flags_identity() {
+fn no_if_true_false_flags_identity() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = if y then True else False",
         &rules::no_if_true_false::NoIfTrueFalse,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_if_true_false_flags_negation() {
+fn no_if_true_false_flags_negation() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = if y then False else True",
         &rules::no_if_true_false::NoIfTrueFalse,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_if_true_false_passes_normal() {
+fn no_if_true_false_passes_normal() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = if y then 1 else 0",
         &rules::no_if_true_false::NoIfTrueFalse,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoUnnecessaryParens ──────────────────────────────────────────────
 
 #[test]
-fn no_unnecessary_parens_flags_literal() {
+fn no_unnecessary_parens_flags_literal() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = (1)",
         &rules::no_unnecessary_parens::NoUnnecessaryParens,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unnecessary_parens_passes_needed() {
+fn no_unnecessary_parens_passes_needed() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = (1 + 2)",
         &rules::no_unnecessary_parens::NoUnnecessaryParens,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoNestedNegation ─────────────────────────────────────────────────
 
 #[test]
-fn no_nested_negation_flags_not_not() {
+fn no_nested_negation_flags_not_not() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = not (not y)",
         &rules::no_nested_negation::NoNestedNegation,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 // ── NoRedundantCons ──────────────────────────────────────────────────
 
 #[test]
-fn no_redundant_cons_flags_singleton() {
+fn no_redundant_cons_flags_singleton() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = 1 :: []",
         &rules::no_redundant_cons::NoRedundantCons,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_redundant_cons_passes_non_empty() {
+fn no_redundant_cons_passes_non_empty() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = 1 :: 2 :: []",
         &rules::no_redundant_cons::NoRedundantCons,
     );
     // The outer `::` has `2 :: []` as the right side which is flagged,
     // but `1 :: (2 :: [])` — the inner one is flagged.
-    assert!(errors >= 1);
+    check!(errors >= 1).satisfies(is_true())?;
+    Ok(())
 }
 
 // ── NoAlwaysIdentity ─────────────────────────────────────────────────
 
 #[test]
-fn no_always_identity_flags() {
+fn no_always_identity_flags() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = always identity",
         &rules::no_always_identity::NoAlwaysIdentity,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_always_identity_flags_composition() {
+fn no_always_identity_flags_composition() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = identity >> f",
         &rules::no_always_identity::NoAlwaysIdentity,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 // ── Project-level rule helpers ───────────────────────────────────────
@@ -284,7 +308,7 @@ fn lint_project(sources: &[(&str, &str)], rule: &dyn Rule) -> Vec<(String, Strin
 // ── NoUnusedExports ─────────────────────────────────────────────────
 
 #[test]
-fn no_unused_exports_flags_unused() {
+fn no_unused_exports_flags_unused() -> TestResult {
     let errors = lint_project(
         &[
             (
@@ -299,12 +323,13 @@ fn no_unused_exports_flags_unused() {
         &rules::no_unused_exports::NoUnusedExports,
     );
     // bar is exported from A but never imported by B.
-    assert_eq!(errors.len(), 1);
-    assert!(errors[0].1.contains("bar"));
+    check!(errors.len()).satisfies(eq(1))?;
+    check!(errors[0].1.as_str()).satisfies(contains_str("bar"))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_exports_passes_when_imported() {
+fn no_unused_exports_passes_when_imported() -> TestResult {
     let errors = lint_project(
         &[
             ("A.elm", "module A exposing (foo)\n\nfoo = 1"),
@@ -315,11 +340,12 @@ fn no_unused_exports_passes_when_imported() {
         ],
         &rules::no_unused_exports::NoUnusedExports,
     );
-    assert_eq!(errors.len(), 0);
+    check!(errors.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_exports_skips_exposing_all() {
+fn no_unused_exports_skips_exposing_all() -> TestResult {
     let errors = lint_project(
         &[
             ("A.elm", "module A exposing (..)\n\nfoo = 1"),
@@ -328,11 +354,12 @@ fn no_unused_exports_skips_exposing_all() {
         &rules::no_unused_exports::NoUnusedExports,
     );
     // A uses exposing (..) — rule skips it.
-    assert_eq!(errors.len(), 0);
+    check!(errors.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_exports_passes_internally_used() {
+fn no_unused_exports_passes_internally_used() -> TestResult {
     let errors = lint_project(
         &[("A.elm", "module A exposing (foo)\n\nfoo = bar\n\nbar = 1")],
         &rules::no_unused_exports::NoUnusedExports,
@@ -341,12 +368,13 @@ fn no_unused_exports_passes_internally_used() {
     // but it IS used internally (it references bar). Wait — foo is exported but not
     // imported by anyone. It is not used internally either (nothing calls foo).
     // So it should be flagged.
-    assert_eq!(errors.len(), 1);
-    assert!(errors[0].1.contains("foo"));
+    check!(errors.len()).satisfies(eq(1))?;
+    check!(errors[0].1.as_str()).satisfies(contains_str("foo"))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_exports_conservative_with_exposing_all_import() {
+fn no_unused_exports_conservative_with_exposing_all_import() -> TestResult {
     let errors = lint_project(
         &[
             ("A.elm", "module A exposing (foo)\n\nfoo = 1"),
@@ -358,11 +386,12 @@ fn no_unused_exports_conservative_with_exposing_all_import() {
         &rules::no_unused_exports::NoUnusedExports,
     );
     // B imports A exposing (..) — conservative: treat all of A's exports as used.
-    assert_eq!(errors.len(), 0);
+    check!(errors.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_exports_flags_unused_type() {
+fn no_unused_exports_flags_unused_type() -> TestResult {
     let errors = lint_project(
         &[
             (
@@ -377,14 +406,15 @@ fn no_unused_exports_flags_unused_type() {
         &rules::no_unused_exports::NoUnusedExports,
     );
     // Bar is exported but never imported.
-    assert_eq!(errors.len(), 1);
-    assert!(errors[0].1.contains("Bar"));
+    check!(errors.len()).satisfies(eq(1))?;
+    check!(errors[0].1.as_str()).satisfies(contains_str("Bar"))?;
+    Ok(())
 }
 
 // ── NoUnusedCustomTypeConstructors ──────────────────────────────────
 
 #[test]
-fn no_unused_constructors_flags_unused() {
+fn no_unused_constructors_flags_unused() -> TestResult {
     let errors = lint_project(
         &[(
             "A.elm",
@@ -392,12 +422,13 @@ fn no_unused_constructors_flags_unused() {
         )],
         &rules::no_unused_custom_type_constructors::NoUnusedCustomTypeConstructors,
     );
-    assert_eq!(errors.len(), 1);
-    assert!(errors[0].1.contains("Unused"));
+    check!(errors.len()).satisfies(eq(1))?;
+    check!(errors[0].1.as_str()).satisfies(contains_str("Unused"))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_constructors_passes_when_used() {
+fn no_unused_constructors_passes_when_used() -> TestResult {
     let errors = lint_project(
         &[(
             "A.elm",
@@ -405,11 +436,12 @@ fn no_unused_constructors_passes_when_used() {
         )],
         &rules::no_unused_custom_type_constructors::NoUnusedCustomTypeConstructors,
     );
-    assert_eq!(errors.len(), 0);
+    check!(errors.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_constructors_cross_module() {
+fn no_unused_constructors_cross_module() -> TestResult {
     let errors = lint_project(
         &[
             (
@@ -424,11 +456,12 @@ fn no_unused_constructors_cross_module() {
         &rules::no_unused_custom_type_constructors::NoUnusedCustomTypeConstructors,
     );
     // Both constructors used from B via qualified references.
-    assert_eq!(errors.len(), 0);
+    check!(errors.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_constructors_pattern_match() {
+fn no_unused_constructors_pattern_match() -> TestResult {
     let errors = lint_project(
         &[(
             "A.elm",
@@ -436,13 +469,14 @@ fn no_unused_constructors_pattern_match() {
         )],
         &rules::no_unused_custom_type_constructors::NoUnusedCustomTypeConstructors,
     );
-    assert_eq!(errors.len(), 0);
+    check!(errors.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoUnusedModules ─────────────────────────────────────────────────
 
 #[test]
-fn no_unused_modules_flags_unused() {
+fn no_unused_modules_flags_unused() -> TestResult {
     let errors = lint_project(
         &[
             ("A.elm", "module A exposing (..)\n\nx = 1"),
@@ -451,11 +485,12 @@ fn no_unused_modules_flags_unused() {
         &rules::no_unused_modules::NoUnusedModules,
     );
     // Neither module imports the other — both flagged.
-    assert_eq!(errors.len(), 2);
+    check!(errors.len()).satisfies(eq(2))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_modules_passes_when_imported() {
+fn no_unused_modules_passes_when_imported() -> TestResult {
     let errors = lint_project(
         &[
             ("A.elm", "module A exposing (..)\n\nx = 1"),
@@ -464,12 +499,13 @@ fn no_unused_modules_passes_when_imported() {
         &rules::no_unused_modules::NoUnusedModules,
     );
     // A is imported by B — only B is flagged (nothing imports B).
-    assert_eq!(errors.len(), 1);
-    assert!(errors[0].1.contains("B"));
+    check!(errors.len()).satisfies(eq(1))?;
+    check!(errors[0].1.as_str()).satisfies(contains_str("B"))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_modules_exempts_main() {
+fn no_unused_modules_exempts_main() -> TestResult {
     let errors = lint_project(
         &[
             (
@@ -481,23 +517,25 @@ fn no_unused_modules_exempts_main() {
         &rules::no_unused_modules::NoUnusedModules,
     );
     // Main is exempt (entry point). A is imported by Main.
-    assert_eq!(errors.len(), 0);
+    check!(errors.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_modules_no_errors_without_project_context() {
+fn no_unused_modules_no_errors_without_project_context() -> TestResult {
     // Without project context, rule should produce no errors.
     let errors = lint_count(
         "module A exposing (..)\n\nx = 1",
         &rules::no_unused_modules::NoUnusedModules,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── All rules don't crash on complex code ────────────────────────────
 
 #[test]
-fn all_rules_on_complex_code() {
+fn all_rules_on_complex_code() -> TestResult {
     let source = r#"
 module Main exposing (..)
 
@@ -518,7 +556,8 @@ update msg model =
 view model =
     div [] [ text (String.fromInt model.count) ]
 "#;
-    let module = parse(source).unwrap();
+    let module = parse(source)
+        .map_err(|e| TestError::new(ErrorKind::Assertion).with_message(format!("parse failed: {e:?}")))?;
     let ctx = LintContext {
         module: &module,
         source,
@@ -535,6 +574,7 @@ view model =
         // because some rules will legitimately fire.
         let _ = errors;
     }
+    Ok(())
 }
 
 // ── Fix verification helpers ────────────────────────────────────────
@@ -583,240 +623,264 @@ fn lint_errors(source: &str, rule: &dyn Rule) -> Vec<LintError> {
 // ── Fix tests ───────────────────────────────────────────────────────
 
 #[test]
-fn fix_unnecessary_parens() {
+fn fix_unnecessary_parens() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = (1)",
         &rules::no_unnecessary_parens::NoUnnecessaryParens,
     );
-    assert!(fixed.contains("x = 1"));
+    check!(fixed.as_str()).satisfies(contains_str("x = 1"))?;
+    Ok(())
 }
 
 #[test]
-fn fix_unnecessary_parens_name() {
+fn fix_unnecessary_parens_name() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = (foo)",
         &rules::no_unnecessary_parens::NoUnnecessaryParens,
     );
-    assert!(fixed.contains("x = foo"));
+    check!(fixed.as_str()).satisfies(contains_str("x = foo"))?;
+    Ok(())
 }
 
 #[test]
-fn fix_redundant_cons() {
+fn fix_redundant_cons() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = 1 :: []",
         &rules::no_redundant_cons::NoRedundantCons,
     );
-    assert!(fixed.contains("[ 1 ]"));
+    check!(fixed.as_str()).satisfies(contains_str("[ 1 ]"))?;
+    Ok(())
 }
 
 #[test]
-fn fix_unused_import() {
+fn fix_unused_import() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nimport Html\n\nx = 1",
         &rules::no_unused_imports::NoUnusedImports,
     );
-    assert!(!fixed.contains("import Html"));
-    assert!(fixed.contains("x = 1"));
+    check!(fixed.contains("import Html")).satisfies(is_false())?;
+    check!(fixed.as_str()).satisfies(contains_str("x = 1"))?;
+    Ok(())
 }
 
 #[test]
-fn fix_if_true_false_identity() {
+fn fix_if_true_false_identity() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = if y then True else False",
         &rules::no_if_true_false::NoIfTrueFalse,
     );
-    assert!(fixed.contains("x = y"));
-    assert!(!fixed.contains("if"));
+    check!(fixed.as_str()).satisfies(contains_str("x = y"))?;
+    check!(fixed.contains("if")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn fix_if_true_false_negation() {
+fn fix_if_true_false_negation() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = if y then False else True",
         &rules::no_if_true_false::NoIfTrueFalse,
     );
-    assert!(fixed.contains("not"));
-    assert!(!fixed.contains("if"));
+    check!(fixed.as_str()).satisfies(contains_str("not"))?;
+    check!(fixed.contains("if")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn fix_always_identity() {
+fn fix_always_identity() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = always identity",
         &rules::no_always_identity::NoAlwaysIdentity,
     );
-    assert!(fixed.contains("x = identity"));
-    assert!(!fixed.contains("always"));
+    check!(fixed.as_str()).satisfies(contains_str("x = identity"))?;
+    check!(fixed.contains("always")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn fix_identity_composition() {
+fn fix_identity_composition() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = identity >> f",
         &rules::no_always_identity::NoAlwaysIdentity,
     );
-    assert!(fixed.contains("x = f"));
-    assert!(!fixed.contains(">>"));
+    check!(fixed.as_str()).satisfies(contains_str("x = f"))?;
+    check!(fixed.contains(">>")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn fix_nested_negation() {
+fn fix_nested_negation() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = not (not y)",
         &rules::no_nested_negation::NoNestedNegation,
     );
-    assert!(fixed.contains("x = y"));
-    assert!(!fixed.contains("not"));
+    check!(fixed.as_str()).satisfies(contains_str("x = y"))?;
+    check!(fixed.contains("not")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoBoolOperatorSimplify ──────────────────────────────────────────
 
 #[test]
-fn no_bool_operator_simplify_and_true() {
+fn no_bool_operator_simplify_and_true() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = y && True",
         &rules::no_bool_operator_simplify::NoBoolOperatorSimplify,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_bool_operator_simplify_or_false() {
+fn no_bool_operator_simplify_or_false() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = y || False",
         &rules::no_bool_operator_simplify::NoBoolOperatorSimplify,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_bool_operator_simplify_and_false() {
+fn no_bool_operator_simplify_and_false() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = y && False",
         &rules::no_bool_operator_simplify::NoBoolOperatorSimplify,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_bool_operator_simplify_or_true() {
+fn no_bool_operator_simplify_or_true() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = y || True",
         &rules::no_bool_operator_simplify::NoBoolOperatorSimplify,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_bool_operator_simplify_passes_normal() {
+fn no_bool_operator_simplify_passes_normal() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = y && z",
         &rules::no_bool_operator_simplify::NoBoolOperatorSimplify,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_bool_operator_and_true() {
+fn fix_bool_operator_and_true() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = y && True",
         &rules::no_bool_operator_simplify::NoBoolOperatorSimplify,
     );
-    assert!(fixed.contains("x = y"));
-    assert!(!fixed.contains("True"));
+    check!(fixed.as_str()).satisfies(contains_str("x = y"))?;
+    check!(fixed.contains("True")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn fix_bool_operator_or_false() {
+fn fix_bool_operator_or_false() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = y || False",
         &rules::no_bool_operator_simplify::NoBoolOperatorSimplify,
     );
-    assert!(fixed.contains("x = y"));
-    assert!(!fixed.contains("False"));
+    check!(fixed.as_str()).satisfies(contains_str("x = y"))?;
+    check!(fixed.contains("False")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoEmptyListConcat ───────────────────────────────────────────────
 
 #[test]
-fn no_empty_list_concat_left() {
+fn no_empty_list_concat_left() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = [] ++ y",
         &rules::no_empty_list_concat::NoEmptyListConcat,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_empty_list_concat_right() {
+fn no_empty_list_concat_right() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = y ++ []",
         &rules::no_empty_list_concat::NoEmptyListConcat,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_empty_list_concat_passes_non_empty() {
+fn no_empty_list_concat_passes_non_empty() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = [ 1 ] ++ [ 2 ]",
         &rules::no_empty_list_concat::NoEmptyListConcat,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_empty_list_concat_left() {
+fn fix_empty_list_concat_left() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = [] ++ y",
         &rules::no_empty_list_concat::NoEmptyListConcat,
     );
-    assert!(fixed.contains("x = y"));
-    assert!(!fixed.contains("[]"));
+    check!(fixed.as_str()).satisfies(contains_str("x = y"))?;
+    check!(fixed.contains("[]")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn fix_empty_list_concat_right() {
+fn fix_empty_list_concat_right() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = y ++ []",
         &rules::no_empty_list_concat::NoEmptyListConcat,
     );
-    assert!(fixed.contains("x = y"));
-    assert!(!fixed.contains("[]"));
+    check!(fixed.as_str()).satisfies(contains_str("x = y"))?;
+    check!(fixed.contains("[]")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoListLiteralConcat ─────────────────────────────────────────────
 
 #[test]
-fn no_list_literal_concat_flags() {
+fn no_list_literal_concat_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = [ 1 ] ++ [ 2 ]",
         &rules::no_list_literal_concat::NoListLiteralConcat,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_list_literal_concat_passes_non_literal() {
+fn no_list_literal_concat_passes_non_literal() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = [ 1 ] ++ y",
         &rules::no_list_literal_concat::NoListLiteralConcat,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_list_literal_concat() {
+fn fix_list_literal_concat() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = [ 1 ] ++ [ 2 ]",
         &rules::no_list_literal_concat::NoListLiteralConcat,
     );
-    assert!(fixed.contains("[ 1, 2 ]"));
-    assert!(!fixed.contains("++"));
+    check!(fixed.as_str()).satisfies(contains_str("[ 1, 2 ]"))?;
+    check!(fixed.contains("++")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn no_list_literal_concat_skips_empty_operand() {
+fn no_list_literal_concat_skips_empty_operand() -> TestResult {
     // `[] ++ [1, 2, 3]` is handled by NoEmptyListConcat, which produces an
     // identical replacement over the identical span. If NoListLiteralConcat
     // also reported it, `apply_fixes` would reject the batch with
@@ -825,468 +889,514 @@ fn no_list_literal_concat_skips_empty_operand() {
         "module T exposing (..)\n\nx = [] ++ [ 1, 2, 3 ]",
         &rules::no_list_literal_concat::NoListLiteralConcat,
     );
-    assert_eq!(empty_left, 0, "should not report on empty left operand");
+    check!(empty_left).satisfies(eq(0)).context("should not report on empty left operand")?;
 
     let empty_right = lint_count(
         "module T exposing (..)\n\nx = [ 1, 2, 3 ] ++ []",
         &rules::no_list_literal_concat::NoListLiteralConcat,
     );
-    assert_eq!(empty_right, 0, "should not report on empty right operand");
+    check!(empty_right).satisfies(eq(0)).context("should not report on empty right operand")?;
 
     let both_empty = lint_count(
         "module T exposing (..)\n\nx = [] ++ []",
         &rules::no_list_literal_concat::NoListLiteralConcat,
     );
-    assert_eq!(both_empty, 0, "should not report when both sides are empty");
+    check!(both_empty).satisfies(eq(0)).context("should not report when both sides are empty")?;
+    Ok(())
 }
 
 // ── NoPipelineSimplify ──────────────────────────────────────────────
 
 #[test]
-fn no_pipeline_simplify_right() {
+fn no_pipeline_simplify_right() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = y |> identity",
         &rules::no_pipeline_simplify::NoPipelineSimplify,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_pipeline_simplify_left() {
+fn no_pipeline_simplify_left() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = identity <| y",
         &rules::no_pipeline_simplify::NoPipelineSimplify,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_pipeline_simplify_passes_normal() {
+fn no_pipeline_simplify_passes_normal() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = y |> f",
         &rules::no_pipeline_simplify::NoPipelineSimplify,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_pipeline_simplify_right() {
+fn fix_pipeline_simplify_right() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = y |> identity",
         &rules::no_pipeline_simplify::NoPipelineSimplify,
     );
-    assert!(fixed.contains("x = y"));
-    assert!(!fixed.contains("identity"));
+    check!(fixed.as_str()).satisfies(contains_str("x = y"))?;
+    check!(fixed.contains("identity")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn fix_pipeline_simplify_left() {
+fn fix_pipeline_simplify_left() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = identity <| y",
         &rules::no_pipeline_simplify::NoPipelineSimplify,
     );
-    assert!(fixed.contains("x = y"));
-    assert!(!fixed.contains("identity"));
+    check!(fixed.as_str()).satisfies(contains_str("x = y"))?;
+    check!(fixed.contains("identity")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoNegationOfBooleanOperator ─────────────────────────────────────
 
 #[test]
-fn no_negation_of_boolean_operator_eq() {
+fn no_negation_of_boolean_operator_eq() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = not (a == b)",
         &rules::no_negation_of_boolean_operator::NoNegationOfBooleanOperator,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_negation_of_boolean_operator_lt() {
+fn no_negation_of_boolean_operator_lt() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = not (a < b)",
         &rules::no_negation_of_boolean_operator::NoNegationOfBooleanOperator,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_negation_of_boolean_operator_passes_non_comparison() {
+fn no_negation_of_boolean_operator_passes_non_comparison() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = not (a && b)",
         &rules::no_negation_of_boolean_operator::NoNegationOfBooleanOperator,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_negation_of_boolean_operator_eq() {
+fn fix_negation_of_boolean_operator_eq() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = not (a == b)",
         &rules::no_negation_of_boolean_operator::NoNegationOfBooleanOperator,
     );
-    assert!(fixed.contains("a /= b"));
-    assert!(!fixed.contains("not"));
+    check!(fixed.as_str()).satisfies(contains_str("a /= b"))?;
+    check!(fixed.contains("not")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn fix_negation_of_boolean_operator_lt() {
+fn fix_negation_of_boolean_operator_lt() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = not (a < b)",
         &rules::no_negation_of_boolean_operator::NoNegationOfBooleanOperator,
     );
-    assert!(fixed.contains("a >= b"));
-    assert!(!fixed.contains("not"));
+    check!(fixed.as_str()).satisfies(contains_str("a >= b"))?;
+    check!(fixed.contains("not")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoStringConcat ──────────────────────────────────────────────────
 
 #[test]
-fn no_string_concat_flags() {
+fn no_string_concat_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = \"hello\" ++ \" world\"",
         &rules::no_string_concat::NoStringConcat,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_string_concat_passes_non_literal() {
+fn no_string_concat_passes_non_literal() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = \"hello\" ++ y",
         &rules::no_string_concat::NoStringConcat,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_string_concat() {
+fn fix_string_concat() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = \"hello\" ++ \" world\"",
         &rules::no_string_concat::NoStringConcat,
     );
-    assert!(fixed.contains("\"hello world\""));
-    assert!(!fixed.contains("++"));
+    check!(fixed.as_str()).satisfies(contains_str("\"hello world\""))?;
+    check!(fixed.contains("++")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoFullyAppliedPrefixOperator ────────────────────────────────────
 
 #[test]
-fn no_fully_applied_prefix_operator_flags() {
+fn no_fully_applied_prefix_operator_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = (+) 1 2",
         &rules::no_fully_applied_prefix_operator::NoFullyAppliedPrefixOperator,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_fully_applied_prefix_operator_passes_partial() {
+fn no_fully_applied_prefix_operator_passes_partial() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = (+) 1",
         &rules::no_fully_applied_prefix_operator::NoFullyAppliedPrefixOperator,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_fully_applied_prefix_operator() {
+fn fix_fully_applied_prefix_operator() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = (+) 1 2",
         &rules::no_fully_applied_prefix_operator::NoFullyAppliedPrefixOperator,
     );
-    assert!(fixed.contains("1 + 2"));
-    assert!(!fixed.contains("(+)"));
+    check!(fixed.as_str()).satisfies(contains_str("1 + 2"))?;
+    check!(fixed.contains("(+)")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoIdentityFunction ──────────────────────────────────────────────
 
 #[test]
-fn no_identity_function_flags() {
+fn no_identity_function_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = \\a -> a",
         &rules::no_identity_function::NoIdentityFunction,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_identity_function_passes_transformation() {
+fn no_identity_function_passes_transformation() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = \\a -> a + 1",
         &rules::no_identity_function::NoIdentityFunction,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_identity_function_passes_multi_arg() {
+fn no_identity_function_passes_multi_arg() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = \\a b -> a",
         &rules::no_identity_function::NoIdentityFunction,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_identity_function() {
+fn fix_identity_function() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx = \\a -> a",
         &rules::no_identity_function::NoIdentityFunction,
     );
-    assert!(fixed.contains("identity"));
-    assert!(!fixed.contains("\\"));
+    check!(fixed.as_str()).satisfies(contains_str("identity"))?;
+    check!(fixed.contains("\\")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoSimpleLetBody ─────────────────────────────────────────────────
 
 #[test]
-fn no_simple_let_body_flags() {
+fn no_simple_let_body_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx =\n    let\n        y = 1\n    in\n    y",
         &rules::no_simple_let_body::NoSimpleLetBody,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_simple_let_body_passes_used_body() {
+fn no_simple_let_body_passes_used_body() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx =\n    let\n        y = 1\n    in\n    y + 2",
         &rules::no_simple_let_body::NoSimpleLetBody,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_simple_let_body_passes_multiple_decls() {
+fn no_simple_let_body_passes_multiple_decls() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx =\n    let\n        y = 1\n        z = 2\n    in\n    y",
         &rules::no_simple_let_body::NoSimpleLetBody,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_simple_let_body() {
+fn fix_simple_let_body() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nx =\n    let\n        y = 1\n    in\n    y",
         &rules::no_simple_let_body::NoSimpleLetBody,
     );
-    assert!(fixed.contains("1"));
-    assert!(!fixed.contains("let"));
+    check!(fixed.as_str()).satisfies(contains_str("1"))?;
+    check!(fixed.contains("let")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoUnusedLetBinding ──────────────────────────────────────────────
 
 #[test]
-fn no_unused_let_binding_flags() {
+fn no_unused_let_binding_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx =\n    let\n        y = 1\n    in\n    2",
         &rules::no_unused_let_binding::NoUnusedLetBinding,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_let_binding_passes_used() {
+fn no_unused_let_binding_passes_used() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx =\n    let\n        y = 1\n    in\n    y",
         &rules::no_unused_let_binding::NoUnusedLetBinding,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_let_binding_passes_used_by_other_decl() {
+fn no_unused_let_binding_passes_used_by_other_decl() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx =\n    let\n        y = 1\n        z = y + 1\n    in\n    z",
         &rules::no_unused_let_binding::NoUnusedLetBinding,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoTodoComment ───────────────────────────────────────────────────
 
 #[test]
-fn no_todo_comment_flags_todo() {
+fn no_todo_comment_flags_todo() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\n-- TODO fix this\nx = 1",
         &rules::no_todo_comment::NoTodoComment,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_todo_comment_flags_fixme() {
+fn no_todo_comment_flags_fixme() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\n-- FIXME later\nx = 1",
         &rules::no_todo_comment::NoTodoComment,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_todo_comment_passes_clean() {
+fn no_todo_comment_passes_clean() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\n-- This is fine\nx = 1",
         &rules::no_todo_comment::NoTodoComment,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoMaybeMapWithNothing ───────────────────────────────────────────
 
 #[test]
-fn no_maybe_map_with_nothing_flags() {
+fn no_maybe_map_with_nothing_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nimport Maybe\n\nx = Maybe.map f Nothing",
         &rules::no_maybe_map_with_nothing::NoMaybeMapWithNothing,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_maybe_map_with_nothing_passes_just() {
+fn no_maybe_map_with_nothing_passes_just() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nimport Maybe\n\nx = Maybe.map f (Just 1)",
         &rules::no_maybe_map_with_nothing::NoMaybeMapWithNothing,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_maybe_map_with_nothing() {
+fn fix_maybe_map_with_nothing() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nimport Maybe\n\nx = Maybe.map f Nothing",
         &rules::no_maybe_map_with_nothing::NoMaybeMapWithNothing,
     );
-    assert!(fixed.contains("x = Nothing"));
-    assert!(!fixed.contains("Maybe.map"));
+    check!(fixed.as_str()).satisfies(contains_str("x = Nothing"))?;
+    check!(fixed.contains("Maybe.map")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoResultMapWithErr ──────────────────────────────────────────────
 
 #[test]
-fn no_result_map_with_err_flags() {
+fn no_result_map_with_err_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nimport Result\n\nx = Result.map f (Err e)",
         &rules::no_result_map_with_err::NoResultMapWithErr,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_result_map_with_err_passes_ok() {
+fn no_result_map_with_err_passes_ok() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nimport Result\n\nx = Result.map f (Ok 1)",
         &rules::no_result_map_with_err::NoResultMapWithErr,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_result_map_with_err() {
+fn fix_result_map_with_err() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nimport Result\n\nx = Result.map f (Err e)",
         &rules::no_result_map_with_err::NoResultMapWithErr,
     );
-    assert!(fixed.contains("Err e"));
-    assert!(!fixed.contains("Result.map"));
+    check!(fixed.as_str()).satisfies(contains_str("Err e"))?;
+    check!(fixed.contains("Result.map")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoExposingAll ──────────────────────────────────────────────────
 
 #[test]
-fn no_exposing_all_flags() {
+fn no_exposing_all_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo = 1",
         &rules::no_exposing_all::NoExposingAll,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_exposing_all_passes_explicit() {
+fn no_exposing_all_passes_explicit() -> TestResult {
     let errors = lint_count(
         "module T exposing (foo)\n\nfoo = 1",
         &rules::no_exposing_all::NoExposingAll,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_exposing_all() {
+fn fix_exposing_all() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nfoo = 1\n\nbar = 2",
         &rules::no_exposing_all::NoExposingAll,
     );
-    assert!(fixed.contains("foo"));
-    assert!(fixed.contains("bar"));
-    assert!(!fixed.contains("(..)"));
+    check!(fixed.as_str()).satisfies(contains_str("foo"))?;
+    check!(fixed.as_str()).satisfies(contains_str("bar"))?;
+    check!(fixed.contains("(..)")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── NoImportExposingAll ────────────────────────────────────────────
 
 #[test]
-fn no_import_exposing_all_flags() {
+fn no_import_exposing_all_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (foo)\n\nimport Html exposing (..)\n\nfoo = Html.div",
         &rules::no_import_exposing_all::NoImportExposingAll,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_import_exposing_all_passes_explicit() {
+fn no_import_exposing_all_passes_explicit() -> TestResult {
     let errors = lint_count(
         "module T exposing (foo)\n\nimport Html exposing (div)\n\nfoo = div",
         &rules::no_import_exposing_all::NoImportExposingAll,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoDeprecated ───────────────────────────────────────────────────
 
 #[test]
-fn no_deprecated_flags_usage() {
+fn no_deprecated_flags_usage() -> TestResult {
     let errors = lint_count(
         "module T exposing (bar)\n\n{-| Module. -}\n\n\n{-| deprecated -}\nfoo = 1\n\nbar = foo + 1",
         &rules::no_deprecated::NoDeprecated,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_deprecated_passes_no_deprecated() {
+fn no_deprecated_passes_no_deprecated() -> TestResult {
     let errors = lint_count(
         "module T exposing (bar)\n\n{-| Module. -}\n\n\n{-| A helper -}\nfoo = 1\n\nbar = foo + 1",
         &rules::no_deprecated::NoDeprecated,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoMissingDocumentation ─────────────────────────────────────────
 
 #[test]
-fn no_missing_documentation_flags_exposed_no_doc() {
+fn no_missing_documentation_flags_exposed_no_doc() -> TestResult {
     let errors = lint_count(
         "module T exposing (foo)\n\nfoo = 1",
         &rules::no_missing_documentation::NoMissingDocumentation,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_missing_documentation_passes_with_doc() {
+fn no_missing_documentation_passes_with_doc() -> TestResult {
     let errors = lint_count(
         "module T exposing (foo)\n\n{-| Module. -}\n\n\n{-| Does stuff -}\nfoo = 1",
         &rules::no_missing_documentation::NoMissingDocumentation,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_missing_documentation_passes_unexposed() {
+fn no_missing_documentation_passes_unexposed() -> TestResult {
     // foo is not exposed so it should not be flagged even without a doc comment.
     // bar is not exposed either.
     let errors = lint_count(
@@ -1299,305 +1409,335 @@ fn no_missing_documentation_passes_unexposed() {
     // that unexposed functions are NOT flagged.
     // The rule should only fire on baz (the exposed one without detected doc).
     // Actually let's test with a truly unexposed function only:
-    assert!(errors <= 1); // baz may or may not have doc detected
+    check!(errors <= 1).satisfies(is_true())?; // baz may or may not have doc detected
+    Ok(())
 }
 
 #[test]
-fn no_missing_documentation_skips_unexposed() {
+fn no_missing_documentation_skips_unexposed() -> TestResult {
     // Only bar is exposed; foo is not — foo should not be flagged.
     let errors = lint(
         "module T exposing (bar)\n\nfoo = 1\n\nbar = 2",
         &rules::no_missing_documentation::NoMissingDocumentation,
     );
     // Only bar should be flagged (exposed, no doc). foo should NOT be flagged.
-    assert_eq!(errors.len(), 1);
-    assert!(errors[0].contains("bar"));
+    check!(errors.len()).satisfies(eq(1))?;
+    check!(errors[0].as_str()).satisfies(contains_str("bar"))?;
+    Ok(())
 }
 
 // ── NoUnnecessaryPortModule ────────────────────────────────────────
 
 #[test]
-fn no_unnecessary_port_module_flags_no_ports() {
+fn no_unnecessary_port_module_flags_no_ports() -> TestResult {
     let errors = lint_count(
         "port module T exposing (foo)\n\nfoo = 1",
         &rules::no_unnecessary_port_module::NoUnnecessaryPortModule,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unnecessary_port_module_passes_with_port() {
+fn no_unnecessary_port_module_passes_with_port() -> TestResult {
     let errors = lint_count(
         "port module T exposing (foo)\n\nport foo : String -> Cmd msg",
         &rules::no_unnecessary_port_module::NoUnnecessaryPortModule,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unnecessary_port_module_passes_normal_module() {
+fn no_unnecessary_port_module_passes_normal_module() -> TestResult {
     let errors = lint_count(
         "module T exposing (foo)\n\nfoo = 1",
         &rules::no_unnecessary_port_module::NoUnnecessaryPortModule,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoMaxLineLength ────────────────────────────────────────────────
 
 #[test]
-fn no_max_line_length_flags_long_line() {
+fn no_max_line_length_flags_long_line() -> TestResult {
     let long_line = format!("x = \"{}\"", "a".repeat(200));
     let source = format!("module T exposing (x)\n\n{long_line}");
     let errors = lint_count(
         &source,
         &rules::no_max_line_length::NoMaxLineLength::default(),
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_max_line_length_passes_short_lines() {
+fn no_max_line_length_passes_short_lines() -> TestResult {
     let errors = lint_count(
         "module T exposing (foo)\n\nfoo = 1",
         &rules::no_max_line_length::NoMaxLineLength::default(),
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoShadowing ────────────────────────────────────────────────────
 
 #[test]
-fn no_shadowing_flags_let_shadowing_top_level() {
+fn no_shadowing_flags_let_shadowing_top_level() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo = 1\n\nbar =\n    let\n        foo = 2\n    in\n    foo",
         &rules::no_shadowing::NoShadowing,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_shadowing_flags_param_shadowing() {
+fn no_shadowing_flags_param_shadowing() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo = 1\n\nbar foo = foo + 1",
         &rules::no_shadowing::NoShadowing,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_shadowing_passes_no_shadow() {
+fn no_shadowing_passes_no_shadow() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo = 1\n\nbar x = x + foo",
         &rules::no_shadowing::NoShadowing,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoUnusedParameters ─────────────────────────────────────────────
 
 #[test]
-fn no_unused_parameters_flags_unused() {
+fn no_unused_parameters_flags_unused() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x = 1",
         &rules::no_unused_parameters::NoUnusedParameters,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_parameters_passes_used() {
+fn no_unused_parameters_passes_used() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x = x + 1",
         &rules::no_unused_parameters::NoUnusedParameters,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_parameters_passes_wildcard() {
+fn no_unused_parameters_passes_wildcard() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo _ = 1",
         &rules::no_unused_parameters::NoUnusedParameters,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn fix_unused_parameter() {
+fn fix_unused_parameter() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nfoo x = 1",
         &rules::no_unused_parameters::NoUnusedParameters,
     );
-    assert!(fixed.contains("foo _ = 1"));
+    check!(fixed.as_str()).satisfies(contains_str("foo _ = 1"))?;
+    Ok(())
 }
 
 // ── Fix: NoEmptyLet ───────────────────────────────────────────────
 
 #[test]
-fn fix_empty_let() {
+fn fix_empty_let() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nfoo = let in 42",
         &rules::no_empty_let::NoEmptyLet,
     );
-    assert!(fixed.contains("42"));
-    assert!(!fixed.contains("let"));
+    check!(fixed.as_str()).satisfies(contains_str("42"))?;
+    check!(fixed.contains("let")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── Fix: NoUnusedLetBinding ───────────────────────────────────────
 
 #[test]
-fn fix_unused_let_binding_single() {
+fn fix_unused_let_binding_single() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nfoo =\n    let\n        unused = 1\n    in\n    42",
         &rules::no_unused_let_binding::NoUnusedLetBinding,
     );
-    assert!(fixed.contains("42"));
-    assert!(!fixed.contains("unused"));
+    check!(fixed.as_str()).satisfies(contains_str("42"))?;
+    check!(fixed.contains("unused")).satisfies(is_false())?;
+    Ok(())
 }
 
 // ── Fix: NoUnusedVariables ────────────────────────────────────────
 
 #[test]
-fn fix_unused_variable_prefix() {
+fn fix_unused_variable_prefix() -> TestResult {
     let fixed = lint_and_fix(
         "module T exposing (..)\n\nfoo =\n    let\n        unused = 1\n    in\n    42",
         &rules::no_unused_variables::NoUnusedVariables,
     );
-    assert!(fixed.contains("_unused"));
+    check!(fixed.as_str()).satisfies(contains_str("_unused"))?;
+    Ok(())
 }
 
 // ── NoUnnecessaryTrailingUnderscore ────────────────────────────────
 
 #[test]
-fn no_unnecessary_trailing_underscore_flags() {
+fn no_unnecessary_trailing_underscore_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x_ = x_",
         &rules::no_unnecessary_trailing_underscore::NoUnnecessaryTrailingUnderscore,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unnecessary_trailing_underscore_passes_when_shadowing() {
+fn no_unnecessary_trailing_underscore_passes_when_shadowing() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = 1\n\nfoo x_ = x_",
         &rules::no_unnecessary_trailing_underscore::NoUnnecessaryTrailingUnderscore,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unnecessary_trailing_underscore_in_let() {
+fn no_unnecessary_trailing_underscore_in_let() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo =\n    let\n        bar_ = 1\n    in\n    bar_",
         &rules::no_unnecessary_trailing_underscore::NoUnnecessaryTrailingUnderscore,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 // ── NoPrematureLetComputation ──────────────────────────────────────
 
 #[test]
-fn no_premature_let_computation_flags_single_branch_use() {
+fn no_premature_let_computation_flags_single_branch_use() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x =\n    let\n        y = expensive x\n    in\n    if x then y else 0",
         &rules::no_premature_let_computation::NoPrematureLetComputation,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_premature_let_computation_passes_multi_branch_use() {
+fn no_premature_let_computation_passes_multi_branch_use() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x =\n    let\n        y = expensive x\n    in\n    if x then y else y",
         &rules::no_premature_let_computation::NoPrematureLetComputation,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_premature_let_computation_passes_non_branching_body() {
+fn no_premature_let_computation_passes_non_branching_body() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x =\n    let\n        y = 1\n    in\n    y + 2",
         &rules::no_premature_let_computation::NoPrematureLetComputation,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoUnusedCustomTypeConstructorArgs ──────────────────────────────
 
 #[test]
-fn no_unused_ctor_args_flags_always_wildcard() {
+fn no_unused_ctor_args_flags_always_wildcard() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\ntype Msg = Click Int\n\nfoo msg =\n    case msg of\n        Click _ ->\n            1",
         &rules::no_unused_custom_type_constructor_args::NoUnusedCustomTypeConstructorArgs,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_ctor_args_passes_when_used() {
+fn no_unused_ctor_args_passes_when_used() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\ntype Msg = Click Int\n\nfoo msg =\n    case msg of\n        Click x ->\n            x",
         &rules::no_unused_custom_type_constructor_args::NoUnusedCustomTypeConstructorArgs,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoRecordPatternInFunctionArgs ──────────────────────────────────
 
 #[test]
-fn no_record_pattern_in_function_args_flags() {
+fn no_record_pattern_in_function_args_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo { x, y } = x + y",
         &rules::no_record_pattern_in_function_args::NoRecordPatternInFunctionArgs,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_record_pattern_in_function_args_passes_var() {
+fn no_record_pattern_in_function_args_passes_var() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo record = record.x + record.y",
         &rules::no_record_pattern_in_function_args::NoRecordPatternInFunctionArgs,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
-// ── NoUnusedPatterns ──────────────────────────────────────��────────
+// ── NoUnusedPatterns ──────────────────────────────────────────────────
 
 #[test]
-fn no_unused_patterns_flags_unused_case_var() {
+fn no_unused_patterns_flags_unused_case_var() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x =\n    case x of\n        Just y ->\n            1\n        Nothing ->\n            0",
         &rules::no_unused_patterns::NoUnusedPatterns,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_patterns_passes_used_var() {
+fn no_unused_patterns_passes_used_var() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x =\n    case x of\n        Just y ->\n            y\n        Nothing ->\n            0",
         &rules::no_unused_patterns::NoUnusedPatterns,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_patterns_passes_wildcard() {
+fn no_unused_patterns_passes_wildcard() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x =\n    case x of\n        Just _ ->\n            1\n        Nothing ->\n            0",
         &rules::no_unused_patterns::NoUnusedPatterns,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── CognitiveComplexity ────────────────────────────────────────────
 
 #[test]
-fn cognitive_complexity_flags_complex() {
+fn cognitive_complexity_flags_complex() -> TestResult {
     // Build a deeply nested function that exceeds threshold.
     let source = r#"module T exposing (..)
 
@@ -1632,188 +1772,207 @@ foo x =
         source,
         &rules::cognitive_complexity::CognitiveComplexity::default(),
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn cognitive_complexity_passes_simple() {
+fn cognitive_complexity_passes_simple() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x = x + 1",
         &rules::cognitive_complexity::CognitiveComplexity::default(),
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoMissingTypeAnnotationInLetIn ────────────────────────────────
 
 #[test]
-fn no_missing_type_annotation_in_let_flags() {
+fn no_missing_type_annotation_in_let_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo =\n    let\n        bar = 1\n    in\n    bar",
         &rules::no_missing_type_annotation_in_let_in::NoMissingTypeAnnotationInLetIn,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_missing_type_annotation_in_let_passes_annotated() {
+fn no_missing_type_annotation_in_let_passes_annotated() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo =\n    let\n        bar : Int\n        bar = 1\n    in\n    bar",
         &rules::no_missing_type_annotation_in_let_in::NoMissingTypeAnnotationInLetIn,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoConfusingPrefixOperator ─────────────────────────────────────
 
 #[test]
-fn no_confusing_prefix_operator_flags_minus() {
+fn no_confusing_prefix_operator_flags_minus() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = (-) 5 3",
         &rules::no_confusing_prefix_operator::NoConfusingPrefixOperator,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_confusing_prefix_operator_flags_append() {
+fn no_confusing_prefix_operator_flags_append() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = (++) \"a\" \"b\"",
         &rules::no_confusing_prefix_operator::NoConfusingPrefixOperator,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_confusing_prefix_operator_passes_commutative() {
+fn no_confusing_prefix_operator_passes_commutative() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nx = (+) 1 2",
         &rules::no_confusing_prefix_operator::NoConfusingPrefixOperator,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoMissingTypeExpose ───────────────────────────────────────────
 
 #[test]
-fn no_missing_type_expose_flags() {
+fn no_missing_type_expose_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (foo)\n\ntype alias MyType = Int\n\nfoo : MyType -> Int\nfoo x = x",
         &rules::no_missing_type_expose::NoMissingTypeExpose,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_missing_type_expose_passes_when_exposed() {
+fn no_missing_type_expose_passes_when_exposed() -> TestResult {
     let errors = lint_count(
         "module T exposing (foo, MyType)\n\ntype alias MyType = Int\n\nfoo : MyType -> Int\nfoo x = x",
         &rules::no_missing_type_expose::NoMissingTypeExpose,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_missing_type_expose_passes_exposing_all() {
+fn no_missing_type_expose_passes_exposing_all() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\ntype alias MyType = Int\n\nfoo : MyType -> Int\nfoo x = x",
         &rules::no_missing_type_expose::NoMissingTypeExpose,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoRedundantlyQualifiedType ────────────────────────────────────
 
 #[test]
-fn no_redundantly_qualified_type_flags() {
+fn no_redundantly_qualified_type_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nimport Set\n\nfoo : Set.Set Int\nfoo = Set.empty",
         &rules::no_redundantly_qualified_type::NoRedundantlyQualifiedType,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_redundantly_qualified_type_passes_different_name() {
+fn no_redundantly_qualified_type_passes_different_name() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nimport Set\n\nfoo : Set.Set Int\nfoo = Set.empty",
         &rules::no_redundantly_qualified_type::NoRedundantlyQualifiedType,
     );
     // Actually Set.Set IS redundant. Let me test with a non-redundant case.
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_redundantly_qualified_type_passes_non_redundant() {
+fn no_redundantly_qualified_type_passes_non_redundant() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nimport Json.Decode\n\nfoo : Json.Decode.Decoder Int\nfoo = Json.Decode.int",
         &rules::no_redundantly_qualified_type::NoRedundantlyQualifiedType,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoUnoptimizedRecursion ────────────────────────────────────────
 
 #[test]
-fn no_unoptimized_recursion_flags_non_tail() {
+fn no_unoptimized_recursion_flags_non_tail() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nsum n =\n    if n == 0 then\n        0\n    else\n        n + sum (n - 1)",
         &rules::no_unoptimized_recursion::NoUnoptimizedRecursion,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unoptimized_recursion_passes_tail_call() {
+fn no_unoptimized_recursion_passes_tail_call() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nsum acc n =\n    if n == 0 then\n        acc\n    else\n        sum (acc + n) (n - 1)",
         &rules::no_unoptimized_recursion::NoUnoptimizedRecursion,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unoptimized_recursion_passes_non_recursive() {
+fn no_unoptimized_recursion_passes_non_recursive() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x = x + 1",
         &rules::no_unoptimized_recursion::NoUnoptimizedRecursion,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoRecursiveUpdate ─────────────────────────────────────────────
 
 #[test]
-fn no_recursive_update_flags() {
+fn no_recursive_update_flags() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\ntype Msg = Click | Reset\n\nupdate msg model =\n    case msg of\n        Click ->\n            model + 1\n        Reset ->\n            update Click 0",
         &rules::no_recursive_update::NoRecursiveUpdate,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_recursive_update_passes_no_recursion() {
+fn no_recursive_update_passes_no_recursion() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\ntype Msg = Click\n\nupdate msg model =\n    case msg of\n        Click ->\n            model + 1",
         &rules::no_recursive_update::NoRecursiveUpdate,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_recursive_update_passes_non_update_function() {
+fn no_recursive_update_passes_non_update_function() -> TestResult {
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x =\n    foo (x - 1)",
         &rules::no_recursive_update::NoRecursiveUpdate,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoDuplicatePorts ────────────────────────────────────────────────
 
 #[test]
-fn no_duplicate_ports_flags_duplicate() {
+fn no_duplicate_ports_flags_duplicate() -> TestResult {
     let results = lint_project(
         &[
             (
@@ -1828,12 +1987,13 @@ fn no_duplicate_ports_flags_duplicate() {
         &rules::no_duplicate_ports::NoDuplicatePorts,
     );
     // Both modules should be flagged.
-    assert_eq!(results.len(), 2);
-    assert!(results.iter().all(|(_, msg)| msg.contains("sendMessage")));
+    check!(results.len()).satisfies(eq(2))?;
+    check!(results.iter().all(|(_, msg)| msg.contains("sendMessage"))).satisfies(is_true())?;
+    Ok(())
 }
 
 #[test]
-fn no_duplicate_ports_passes_unique_names() {
+fn no_duplicate_ports_passes_unique_names() -> TestResult {
     let results = lint_project(
         &[
             (
@@ -1847,191 +2007,208 @@ fn no_duplicate_ports_passes_unique_names() {
         ],
         &rules::no_duplicate_ports::NoDuplicatePorts,
     );
-    assert_eq!(results.len(), 0);
+    check!(results.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_duplicate_ports_passes_no_ports() {
+fn no_duplicate_ports_passes_no_ports() -> TestResult {
     let errors = lint_count(
         "module Main exposing (..)\n\nx = 1",
         &rules::no_duplicate_ports::NoDuplicatePorts,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoUnsafePorts ───────────────────────────────────────────────────
 
 #[test]
-fn no_unsafe_ports_flags_custom_type() {
+fn no_unsafe_ports_flags_custom_type() -> TestResult {
     let errors = lint_count(
         "port module T exposing (..)\n\ntype Msg = Click\n\nport sendMsg : Msg -> Cmd msg",
         &rules::no_unsafe_ports::NoUnsafePorts,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unsafe_ports_flags_type_variable() {
+fn no_unsafe_ports_flags_type_variable() -> TestResult {
     let errors = lint_count(
         "port module T exposing (..)\n\nport sendData : a -> Cmd msg",
         &rules::no_unsafe_ports::NoUnsafePorts,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unsafe_ports_passes_safe_types() {
+fn no_unsafe_ports_passes_safe_types() -> TestResult {
     let errors = lint_count(
         "port module T exposing (..)\n\nport sendString : String -> Cmd msg",
         &rules::no_unsafe_ports::NoUnsafePorts,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unsafe_ports_passes_json_value() {
+fn no_unsafe_ports_passes_json_value() -> TestResult {
     let errors = lint_count(
         "port module T exposing (..)\n\nport sendValue : Json.Encode.Value -> Cmd msg",
         &rules::no_unsafe_ports::NoUnsafePorts,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unsafe_ports_passes_record() {
+fn no_unsafe_ports_passes_record() -> TestResult {
     let errors = lint_count(
         "port module T exposing (..)\n\nport sendData : { name : String, age : Int } -> Cmd msg",
         &rules::no_unsafe_ports::NoUnsafePorts,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unsafe_ports_passes_list() {
+fn no_unsafe_ports_passes_list() -> TestResult {
     let errors = lint_count(
         "port module T exposing (..)\n\nport sendItems : List String -> Cmd msg",
         &rules::no_unsafe_ports::NoUnsafePorts,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unsafe_ports_flags_incoming_custom_type() {
+fn no_unsafe_ports_flags_incoming_custom_type() -> TestResult {
     let errors = lint_count(
         "port module T exposing (..)\n\ntype Payload = Data\n\nport onData : (Payload -> msg) -> Sub msg",
         &rules::no_unsafe_ports::NoUnsafePorts,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_unsafe_ports_passes_incoming_safe() {
+fn no_unsafe_ports_passes_incoming_safe() -> TestResult {
     let errors = lint_count(
         "port module T exposing (..)\n\nport onMessage : (String -> msg) -> Sub msg",
         &rules::no_unsafe_ports::NoUnsafePorts,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── NoInconsistentAliases ───────────────────────────────────────────
 
 #[test]
-fn no_inconsistent_aliases_flags_wrong_alias() {
+fn no_inconsistent_aliases_flags_wrong_alias() -> TestResult {
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-    let config: toml::Value = toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).unwrap();
-    rule.configure(&config).unwrap();
+    let config: toml::Value = toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).or_fail_with("toml parses")?;
+    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     let errors = lint_count(
         "module T exposing (..)\n\nimport Json.Decode as JD\n\nx = JD.string",
         &rule,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_inconsistent_aliases_passes_correct_alias() {
+fn no_inconsistent_aliases_passes_correct_alias() -> TestResult {
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-    let config: toml::Value = toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).unwrap();
-    rule.configure(&config).unwrap();
+    let config: toml::Value = toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).or_fail_with("toml parses")?;
+    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     let errors = lint_count(
         "module T exposing (..)\n\nimport Json.Decode as Decode\n\nx = Decode.string",
         &rule,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_inconsistent_aliases_passes_default_alias_match() {
+fn no_inconsistent_aliases_passes_default_alias_match() -> TestResult {
     // If the canonical alias matches the default (last segment), no alias needed.
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
     let config: toml::Value =
-        toml::from_str(r#"aliases = { "Html.Attributes" = "Attributes" }"#).unwrap();
-    rule.configure(&config).unwrap();
+        toml::from_str(r#"aliases = { "Html.Attributes" = "Attributes" }"#).or_fail_with("toml parses")?;
+    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     let errors = lint_count(
         "module T exposing (..)\n\nimport Html.Attributes\n\nx = Attributes.class \"foo\"",
         &rule,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_inconsistent_aliases_flags_missing_alias() {
+fn no_inconsistent_aliases_flags_missing_alias() -> TestResult {
     // Default alias "Attributes" doesn't match canonical "Attr".
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
     let config: toml::Value =
-        toml::from_str(r#"aliases = { "Html.Attributes" = "Attr" }"#).unwrap();
-    rule.configure(&config).unwrap();
+        toml::from_str(r#"aliases = { "Html.Attributes" = "Attr" }"#).or_fail_with("toml parses")?;
+    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     let errors = lint_count(
         "module T exposing (..)\n\nimport Html.Attributes\n\nx = Attributes.class \"foo\"",
         &rule,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 #[test]
-fn no_inconsistent_aliases_no_config_passes_everything() {
+fn no_inconsistent_aliases_no_config_passes_everything() -> TestResult {
     let rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
     let errors = lint_count(
         "module T exposing (..)\n\nimport Json.Decode as JD\n\nx = JD.string",
         &rule,
     );
-    assert_eq!(errors, 0);
+    check!(errors).satisfies(eq(0))?;
+    Ok(())
 }
 
 // ── Per-rule config: NoMaxLineLength ────────────────────────────────
 
 #[test]
-fn no_max_line_length_respects_config() {
+fn no_max_line_length_respects_config() -> TestResult {
     use elm_lint::rule::Rule;
     let mut rule = rules::no_max_line_length::NoMaxLineLength::default();
-    let config: toml::Value = toml::from_str("max_length = 50").unwrap();
-    rule.configure(&config).unwrap();
+    let config: toml::Value = toml::from_str("max_length = 50").or_fail_with("toml parses")?;
+    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     // A 60-char line should fail with max_length=50 but pass with default 120.
     let line = format!("x = \"{}\"", "a".repeat(52));
     let source = format!("module T exposing (x)\n\n{line}");
     let errors = lint_count(&source, &rule);
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 // ── Per-rule config: CognitiveComplexity ────────────────────────────
 
 #[test]
-fn cognitive_complexity_respects_config() {
+fn cognitive_complexity_respects_config() -> TestResult {
     use elm_lint::rule::Rule;
     let mut rule = rules::cognitive_complexity::CognitiveComplexity::default();
-    let config: toml::Value = toml::from_str("threshold = 1").unwrap();
-    rule.configure(&config).unwrap();
+    let config: toml::Value = toml::from_str("threshold = 1").or_fail_with("toml parses")?;
+    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     // Two if/else branches: complexity = 1 + 1 = 2, exceeds threshold=1.
     let errors = lint_count(
         "module T exposing (..)\n\nfoo x =\n    if x then\n        if x then 1 else 2\n    else\n        0",
         &rule,
     );
-    assert_eq!(errors, 1);
+    check!(errors).satisfies(eq(1))?;
+    Ok(())
 }
 
 // ── NoUnusedDependencies ────────────────────────────────────────────
@@ -2101,7 +2278,7 @@ fn lint_project_with_elm_json(
 }
 
 #[test]
-fn no_unused_dependencies_flags_unused() {
+fn no_unused_dependencies_flags_unused() -> TestResult {
     let mut deps = HashMap::new();
     deps.insert("elm/core".to_string(), "1.0.5".to_string());
     deps.insert("elm/json".to_string(), "1.1.3".to_string());
@@ -2119,12 +2296,13 @@ fn no_unused_dependencies_flags_unused() {
         &rules::no_unused_dependencies::NoUnusedDependencies,
     );
 
-    assert_eq!(results.len(), 1);
-    assert!(results[0].1.contains("elm/json"));
+    check!(results.len()).satisfies(eq(1))?;
+    check!(results[0].1.as_str()).satisfies(contains_str("elm/json"))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_dependencies_passes_all_used() {
+fn no_unused_dependencies_passes_all_used() -> TestResult {
     let mut deps = HashMap::new();
     deps.insert("elm/core".to_string(), "1.0.5".to_string());
     deps.insert("elm/json".to_string(), "1.1.3".to_string());
@@ -2141,11 +2319,12 @@ fn no_unused_dependencies_passes_all_used() {
         &rules::no_unused_dependencies::NoUnusedDependencies,
     );
 
-    assert_eq!(results.len(), 0);
+    check!(results.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_dependencies_skips_elm_core() {
+fn no_unused_dependencies_skips_elm_core() -> TestResult {
     let mut deps = HashMap::new();
     deps.insert("elm/core".to_string(), "1.0.5".to_string());
 
@@ -2158,11 +2337,12 @@ fn no_unused_dependencies_skips_elm_core() {
         &rules::no_unused_dependencies::NoUnusedDependencies,
     );
 
-    assert_eq!(results.len(), 0);
+    check!(results.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_dependencies_skips_unknown_packages() {
+fn no_unused_dependencies_skips_unknown_packages() -> TestResult {
     let mut deps = HashMap::new();
     deps.insert("elm/core".to_string(), "1.0.5".to_string());
     deps.insert("some/unknown-package".to_string(), "1.0.0".to_string());
@@ -2176,11 +2356,12 @@ fn no_unused_dependencies_skips_unknown_packages() {
         &rules::no_unused_dependencies::NoUnusedDependencies,
     );
 
-    assert_eq!(results.len(), 0);
+    check!(results.len()).satisfies(eq(0))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_dependencies_reports_once_not_per_file() {
+fn no_unused_dependencies_reports_once_not_per_file() -> TestResult {
     let mut deps = HashMap::new();
     deps.insert("elm/core".to_string(), "1.0.5".to_string());
     deps.insert("elm/http".to_string(), "2.0.0".to_string());
@@ -2197,16 +2378,18 @@ fn no_unused_dependencies_reports_once_not_per_file() {
         &rules::no_unused_dependencies::NoUnusedDependencies,
     );
 
-    assert_eq!(results.len(), 1);
-    assert!(results[0].1.contains("elm/http"));
+    check!(results.len()).satisfies(eq(1))?;
+    check!(results[0].1.as_str()).satisfies(contains_str("elm/http"))?;
+    Ok(())
 }
 
 #[test]
-fn no_unused_dependencies_no_elm_json_passes() {
+fn no_unused_dependencies_no_elm_json_passes() -> TestResult {
     // Without elm.json info, the rule does nothing.
     let results = lint_project(
         &[("Main.elm", "module Main exposing (..)\n\nx = 1")],
         &rules::no_unused_dependencies::NoUnusedDependencies,
     );
-    assert_eq!(results.len(), 0);
+    check!(results.len()).satisfies(eq(0))?;
+    Ok(())
 }

@@ -2,6 +2,7 @@ use elm_ast::{parse, print};
 use elm_refactor::commands;
 use elm_refactor::project::{Project, ProjectFile};
 use std::path::PathBuf;
+use test_better::prelude::*;
 
 fn make_project(files: Vec<(&str, &str)>) -> Project {
     let project_files = files
@@ -31,14 +32,14 @@ fn printed(project: &Project, module_name: &str) -> String {
         .files
         .iter()
         .find(|f| f.module_name == module_name)
-        .unwrap();
+        .unwrap_or_else(|| panic!("module {module_name} not found"));
     print(&file.module)
 }
 
 // ── Cross-file rename ────────────────────────────────────────────────
 
 #[test]
-fn rename_updates_definition_and_cross_file_reference() {
+fn rename_updates_definition_and_cross_file_reference() -> TestResult {
     let mut project = make_project(vec![
         (
             "Utils.elm",
@@ -61,22 +62,23 @@ main = Utils.helper 5
     ]);
 
     let changes = commands::rename::rename(&mut project, "Utils", "helper", "assist");
-    assert!(changes > 0);
+    check!(changes > 0).satisfies(is_true())?;
 
     // Definition renamed.
     let utils = printed(&project, "Utils");
-    assert!(utils.contains("assist x ="));
-    assert!(utils.contains("exposing (assist)"));
-    assert!(!utils.contains("helper"));
+    check!(utils.as_str()).satisfies(contains_str("assist x ="))?;
+    check!(utils.as_str()).satisfies(contains_str("exposing (assist)"))?;
+    check!(utils.contains("helper")).satisfies(is_false())?;
 
     // Qualified reference renamed.
     let main = printed(&project, "Main");
-    assert!(main.contains("Utils.assist"));
-    assert!(!main.contains("Utils.helper"));
+    check!(main.as_str()).satisfies(contains_str("Utils.assist"))?;
+    check!(main.contains("Utils.helper")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn rename_updates_exposed_import() {
+fn rename_updates_exposed_import() -> TestResult {
     let mut project = make_project(vec![
         (
             "Utils.elm",
@@ -101,13 +103,14 @@ main = old 5
     commands::rename::rename(&mut project, "Utils", "old", "new");
 
     let main = printed(&project, "Main");
-    assert!(main.contains("exposing (new)"));
-    assert!(main.contains("new 5"));
-    assert!(!main.contains("old"));
+    check!(main.as_str()).satisfies(contains_str("exposing (new)"))?;
+    check!(main.as_str()).satisfies(contains_str("new 5"))?;
+    check!(main.contains("old")).satisfies(is_false())?;
+    Ok(())
 }
 
 #[test]
-fn rename_no_false_positives() {
+fn rename_no_false_positives() -> TestResult {
     let mut project = make_project(vec![
         (
             "A.elm",
@@ -135,14 +138,15 @@ foo = 99
 
     // B's own `foo` should NOT be renamed.
     let b = printed(&project, "B");
-    assert!(b.contains("A.baz"));
-    assert!(b.contains("foo =\n    99")); // B.foo unchanged
+    check!(b.as_str()).satisfies(contains_str("A.baz"))?;
+    check!(b.as_str()).satisfies(contains_str("foo =\n    99"))?; // B.foo unchanged
+    Ok(())
 }
 
 // ── Sort imports across files ────────────────────────────────────────
 
 #[test]
-fn sort_imports_works_across_files() {
+fn sort_imports_works_across_files() -> TestResult {
     let mut project = make_project(vec![
         (
             "A.elm",
@@ -171,13 +175,14 @@ y = 2
     ]);
 
     let changes = commands::sort_imports::sort_imports(&mut project);
-    assert_eq!(changes, 2);
+    check!(changes).satisfies(eq(2))?;
 
     let a = printed(&project, "A");
     let a_imports: Vec<&str> = a.lines().filter(|l| l.starts_with("import ")).collect();
-    assert_eq!(a_imports, vec!["import A", "import M", "import Z"]);
+    check!(a_imports).satisfies(eq(vec!["import A", "import M", "import Z"]))?;
 
     let b = printed(&project, "B");
     let b_imports: Vec<&str> = b.lines().filter(|l| l.starts_with("import ")).collect();
-    assert_eq!(b_imports, vec!["import B", "import D", "import X"]);
+    check!(b_imports).satisfies(eq(vec!["import B", "import D", "import X"]))?;
+    Ok(())
 }

@@ -7,6 +7,12 @@ use elm_lint::collect::collect_module_info;
 use elm_lint::elm_json::ElmJsonInfo;
 use elm_lint::rule::{LintContext, ProjectContext, Rule};
 use elm_lint::rules;
+use test_better::ErrorKind;
+use test_better::prelude::*;
+
+fn fail(msg: impl Into<String>) -> TestError {
+    TestError::new(ErrorKind::Assertion).with_message(msg.into())
+}
 
 fn find_elm_files(dir: &str) -> Vec<PathBuf> {
     let mut files = Vec::new();
@@ -32,7 +38,7 @@ fn collect_elm_files(dir: &Path, files: &mut Vec<PathBuf>) {
 
 /// All rules should run without panicking on every real-world file.
 #[test]
-fn all_rules_no_crash_on_real_files() {
+fn all_rules_no_crash_on_real_files() -> TestResult {
     let dirs = [
         "../../test-fixtures/core/src",
         "../../test-fixtures/html/src",
@@ -120,18 +126,19 @@ fn all_rules_no_crash_on_real_files() {
 
     if total_files == 0 {
         eprintln!("skipping: no fixture files found (run `git submodule update --init`)");
-        return;
+        return Ok(());
     }
     eprintln!(
         "Ran all {0} rules on {total_files} files without crashes",
         all_rules.len()
     );
+    Ok(())
 }
 
 /// Every rule should fire at least once across the full 291-file corpus.
 /// If a rule never triggers on real code, it's either broken or useless.
 #[test]
-fn every_rule_fires_on_real_code() {
+fn every_rule_fires_on_real_code() -> TestResult {
     let dirs = [
         "../../test-fixtures/core/src",
         "../../test-fixtures/html/src",
@@ -275,7 +282,7 @@ fn every_rule_fires_on_real_code() {
         let has_files = dirs.iter().any(|d| !find_elm_files(d).is_empty());
         if !has_files {
             eprintln!("skipping: no fixture files found (run `git submodule update --init`)");
-            return;
+            return Ok(());
         }
     }
 
@@ -297,17 +304,19 @@ fn every_rule_fires_on_real_code() {
         eprintln!("  {}: {}{}", rule.name(), count, marker);
     }
 
-    assert!(
-        missing.is_empty(),
-        "these non-exempt rules never fired on real code: {:?}",
-        missing
-    );
+    check!(missing.is_empty())
+        .satisfies(is_true())
+        .context(format!(
+            "these non-exempt rules never fired on real code: {:?}",
+            missing
+        ))?;
+    Ok(())
 }
 
 /// Each rule should produce at least one finding on SOME file.
 /// This catches rules that are accidentally no-ops.
 #[test]
-fn each_rule_fires_on_something() {
+fn each_rule_fires_on_something() -> TestResult {
     let test_cases: Vec<(&str, &str)> = vec![
         (
             "NoUnusedImports",
@@ -501,7 +510,8 @@ foo x =
     let all_rules = rules::all_rules();
 
     for (rule_name, source) in test_cases {
-        let module = parse(source).unwrap();
+        let module = parse(source)
+            .map_err(|e| fail(format!("parse failed for {rule_name}: {e:?}")))?;
         let ctx = LintContext {
             module: &module,
             source,
@@ -514,18 +524,20 @@ foo x =
         let rule = all_rules
             .iter()
             .find(|r| r.name() == rule_name)
-            .unwrap_or_else(|| panic!("rule {rule_name} not found"));
+            .ok_or_else(|| fail(format!("rule {rule_name} not found")))?;
 
         let errors = rule.check(&ctx);
-        assert!(
-            !errors.is_empty(),
-            "rule {rule_name} should fire on test input but produced 0 errors"
-        );
+        check!(!errors.is_empty())
+            .satisfies(is_true())
+            .context(format!(
+                "rule {rule_name} should fire on test input but produced 0 errors"
+            ))?;
     }
 
     // Test NoMaxLineLength separately with dynamic source.
     {
-        let module = parse(&max_line_source).unwrap();
+        let module = parse(&max_line_source)
+            .map_err(|e| fail(format!("parse failed for NoMaxLineLength: {e:?}")))?;
         let ctx = LintContext {
             module: &module,
             source: &max_line_source,
@@ -537,17 +549,17 @@ foo x =
         let rule = all_rules
             .iter()
             .find(|r| r.name() == "NoMaxLineLength")
-            .expect("NoMaxLineLength not found");
+            .ok_or_else(|| fail("NoMaxLineLength not found"))?;
         let errors = rule.check(&ctx);
-        assert!(
-            !errors.is_empty(),
-            "rule NoMaxLineLength should fire on test input but produced 0 errors"
-        );
+        check!(!errors.is_empty())
+            .satisfies(is_true())
+            .context("rule NoMaxLineLength should fire on test input but produced 0 errors")?;
     }
 
     // Test CognitiveComplexity separately with deeply nested source.
     {
-        let module = parse(cognitive_source).unwrap();
+        let module = parse(cognitive_source)
+            .map_err(|e| fail(format!("parse failed for CognitiveComplexity: {e:?}")))?;
         let ctx = LintContext {
             module: &module,
             source: cognitive_source,
@@ -559,12 +571,11 @@ foo x =
         let rule = all_rules
             .iter()
             .find(|r| r.name() == "CognitiveComplexity")
-            .expect("CognitiveComplexity not found");
+            .ok_or_else(|| fail("CognitiveComplexity not found"))?;
         let errors = rule.check(&ctx);
-        assert!(
-            !errors.is_empty(),
-            "rule CognitiveComplexity should fire on test input but produced 0 errors"
-        );
+        check!(!errors.is_empty())
+            .satisfies(is_true())
+            .context("rule CognitiveComplexity should fire on test input but produced 0 errors")?;
     }
 
     // Test NoDuplicatePorts separately — it requires project context with two port modules.
@@ -572,8 +583,10 @@ foo x =
         let src_a = "port module Ports.A exposing (..)\n\nport sendMessage : String -> Cmd msg";
         let src_b = "port module Ports.B exposing (..)\n\nport sendMessage : String -> Cmd msg";
 
-        let mod_a = parse(src_a).unwrap();
-        let mod_b = parse(src_b).unwrap();
+        let mod_a = parse(src_a)
+            .map_err(|e| fail(format!("parse failed for Ports.A: {e:?}")))?;
+        let mod_b = parse(src_b)
+            .map_err(|e| fail(format!("parse failed for Ports.B: {e:?}")))?;
         let info_a = collect_module_info(&mod_a);
         let info_b = collect_module_info(&mod_b);
         let name_a = info_a.module_name.join(".");
@@ -597,23 +610,25 @@ foo x =
         let rule = all_rules
             .iter()
             .find(|r| r.name() == "NoDuplicatePorts")
-            .expect("NoDuplicatePorts not found");
+            .ok_or_else(|| fail("NoDuplicatePorts not found"))?;
         let errors = rule.check(&ctx_a);
-        assert!(
-            !errors.is_empty(),
-            "rule NoDuplicatePorts should fire on test input but produced 0 errors"
-        );
+        check!(!errors.is_empty())
+            .satisfies(is_true())
+            .context("rule NoDuplicatePorts should fire on test input but produced 0 errors")?;
     }
 
     // Test NoInconsistentAliases separately — it needs per-rule config to activate.
     {
         let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
         let config: toml::Value =
-            toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).unwrap();
-        rule.configure(&config).unwrap();
+            toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#)
+                .map_err(|e| fail(format!("toml parse failed: {e}")))?;
+        rule.configure(&config)
+            .map_err(|e| fail(format!("configure failed: {e}")))?;
 
         let source = "module T exposing (..)\n\nimport Json.Decode as JD\n\nx = JD.string";
-        let module = parse(source).unwrap();
+        let module = parse(source)
+            .map_err(|e| fail(format!("parse failed for NoInconsistentAliases: {e:?}")))?;
         let ctx = LintContext {
             module: &module,
             source,
@@ -623,10 +638,11 @@ foo x =
             project: None,
         };
         let errors = rule.check(&ctx);
-        assert!(
-            !errors.is_empty(),
-            "rule NoInconsistentAliases should fire on test input but produced 0 errors"
-        );
+        check!(!errors.is_empty())
+            .satisfies(is_true())
+            .context(
+                "rule NoInconsistentAliases should fire on test input but produced 0 errors",
+            )?;
     }
 
     // Test NoUnusedDependencies separately — it needs elm.json + project context.
@@ -646,7 +662,8 @@ foo x =
         };
 
         let source = "module Main exposing (..)\n\nx = 1";
-        let module = parse(source).unwrap();
+        let module = parse(source)
+            .map_err(|e| fail(format!("parse failed for NoUnusedDependencies: {e:?}")))?;
         let info = collect_module_info(&module);
         let mod_name = info.module_name.join(".");
         let mut module_infos = HashMap::new();
@@ -666,11 +683,14 @@ foo x =
         let rule = all_rules
             .iter()
             .find(|r| r.name() == "NoUnusedDependencies")
-            .expect("NoUnusedDependencies not found");
+            .ok_or_else(|| fail("NoUnusedDependencies not found"))?;
         let errors = rule.check(&ctx);
-        assert!(
-            !errors.is_empty(),
-            "rule NoUnusedDependencies should fire on test input but produced 0 errors"
-        );
+        check!(!errors.is_empty())
+            .satisfies(is_true())
+            .context(
+                "rule NoUnusedDependencies should fire on test input but produced 0 errors",
+            )?;
     }
+
+    Ok(())
 }

@@ -17,6 +17,12 @@ use tokio::time::timeout;
 
 use elm_assist_tui::app::{Command, Msg};
 use elm_assist_tui::command;
+use test_better::ErrorKind;
+use test_better::prelude::*;
+
+fn fail(msg: impl Into<String>) -> TestError {
+    TestError::new(ErrorKind::Assertion).with_message(msg.into())
+}
 
 // ── Test scaffolding ────────────────────────────────────────────────
 
@@ -105,7 +111,7 @@ const GOOD_ELM: &str = "module Main exposing (..)\n\nx = 1\n";
 // ── ScanProject ─────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn scan_project_reports_module_counts() {
+async fn scan_project_reports_module_counts() -> TestResult {
     let project = TempProject::new("scan-ok");
     project.write("A.elm", GOOD_ELM);
     project.write("B.elm", "module B exposing (..)\n\ny = 2\n");
@@ -125,13 +131,14 @@ async fn scan_project_reports_module_counts() {
             } => Some((*module_count, *file_count, *parse_error_count)),
             _ => None,
         })
-        .unwrap_or_else(|| panic!("expected Msg::ProjectScanned, got: {:?}", tags(&msgs)));
+        .ok_or_else(|| fail(format!("expected Msg::ProjectScanned, got: {:?}", tags(&msgs))))?;
 
-    assert_eq!(scanned, (2, 2, 0), "module, file, parse_error counts");
+    check!(scanned).satisfies(eq((2, 2, 0))).context("module, file, parse_error counts")?;
+    Ok(())
 }
 
 #[tokio::test]
-async fn scan_project_counts_parse_errors() {
+async fn scan_project_counts_parse_errors() -> TestResult {
     let project = TempProject::new("scan-parse-err");
     project.write("A.elm", GOOD_ELM);
     project.write("Broken.elm", "module Broken exposing (..\n\n(((\n");
@@ -151,15 +158,16 @@ async fn scan_project_counts_parse_errors() {
             } => Some((*module_count, *file_count, *parse_error_count)),
             _ => None,
         })
-        .unwrap_or_else(|| panic!("expected Msg::ProjectScanned, got: {:?}", tags(&msgs)));
+        .ok_or_else(|| fail(format!("expected Msg::ProjectScanned, got: {:?}", tags(&msgs))))?;
 
-    assert_eq!(files, 2, "both files discovered");
-    assert_eq!(modules, 1, "only the valid file parses into a module");
-    assert_eq!(parse_errs, 1, "one parse error reported");
+    check!(files).satisfies(eq(2)).context("both files discovered")?;
+    check!(modules).satisfies(eq(1)).context("only the valid file parses into a module")?;
+    check!(parse_errs).satisfies(eq(1)).context("one parse error reported")?;
+    Ok(())
 }
 
 #[tokio::test]
-async fn scan_project_missing_dir_emits_status_error() {
+async fn scan_project_missing_dir_emits_status_error() -> TestResult {
     let (tx, mut rx) = mpsc::unbounded_channel();
     command::execute(
         Command::ScanProject,
@@ -169,17 +177,16 @@ async fn scan_project_missing_dir_emits_status_error() {
     .await;
 
     let msgs = drain(&mut rx).await;
-    assert!(
-        msgs.iter().any(|m| matches!(m, Msg::StatusError(_))),
-        "expected a StatusError, got: {:?}",
-        tags(&msgs)
-    );
+    check!(msgs.iter().any(|m| matches!(m, Msg::StatusError(_))))
+        .satisfies(is_true())
+        .context(format!("expected a StatusError, got: {:?}", tags(&msgs)))?;
+    Ok(())
 }
 
 // ── RunAnalyses ─────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn run_analyses_emits_lint_and_deps() {
+async fn run_analyses_emits_lint_and_deps() -> TestResult {
     let project = TempProject::new("run-analyses");
     project.write("Main.elm", GOOD_ELM);
 
@@ -190,14 +197,19 @@ async fn run_analyses_emits_lint_and_deps() {
     let has_lint = msgs.iter().any(|m| matches!(m, Msg::LintComplete(_)));
     let has_deps = msgs.iter().any(|m| matches!(m, Msg::DepsComplete { .. }));
 
-    assert!(has_lint, "expected LintComplete, got: {:?}", tags(&msgs));
-    assert!(has_deps, "expected DepsComplete, got: {:?}", tags(&msgs));
+    check!(has_lint)
+        .satisfies(is_true())
+        .context(format!("expected LintComplete, got: {:?}", tags(&msgs)))?;
+    check!(has_deps)
+        .satisfies(is_true())
+        .context(format!("expected DepsComplete, got: {:?}", tags(&msgs)))?;
+    Ok(())
 }
 
 // ── ApplyFix ────────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn apply_fix_writes_when_result_parses() {
+async fn apply_fix_writes_when_result_parses() -> TestResult {
     let project = TempProject::new("apply-ok");
     let target = project.path_in_src("Target.elm");
     project.write("Target.elm", "module Target exposing (..)\n\nx = 0\n");
@@ -212,18 +224,18 @@ async fn apply_fix_writes_when_result_parses() {
     .await;
 
     let msgs = drain(&mut rx).await;
-    assert!(
-        !msgs.iter().any(|m| matches!(m, Msg::StatusError(_))),
-        "valid fix should not emit StatusError, got: {:?}",
-        tags(&msgs)
-    );
+    check!(!msgs.iter().any(|m| matches!(m, Msg::StatusError(_))))
+        .satisfies(is_true())
+        .context(format!("valid fix should not emit StatusError, got: {:?}", tags(&msgs)))?;
 
-    let written = std::fs::read_to_string(&target).expect("file should exist");
-    assert_eq!(written, new_source, "file should contain the fixed source");
+    let written = std::fs::read_to_string(&target)
+        .map_err(|e| fail(format!("file should exist: {e}")))?;
+    check!(written).satisfies(eq(new_source)).context("file should contain the fixed source")?;
+    Ok(())
 }
 
 #[tokio::test]
-async fn apply_fix_rejects_invalid_elm_without_writing() {
+async fn apply_fix_rejects_invalid_elm_without_writing() -> TestResult {
     let project = TempProject::new("apply-invalid");
     let target = project.path_in_src("Target.elm");
     let original = "module Target exposing (..)\n\nx = 0\n";
@@ -240,23 +252,22 @@ async fn apply_fix_rejects_invalid_elm_without_writing() {
     .await;
 
     let msgs = drain(&mut rx).await;
-    assert!(
-        msgs.iter().any(|m| matches!(m, Msg::StatusError(_))),
-        "invalid fix should emit StatusError, got: {:?}",
-        tags(&msgs)
-    );
+    check!(msgs.iter().any(|m| matches!(m, Msg::StatusError(_))))
+        .satisfies(is_true())
+        .context(format!("invalid fix should emit StatusError, got: {:?}", tags(&msgs)))?;
 
-    let on_disk = std::fs::read_to_string(&target).expect("file should still exist");
-    assert_eq!(
-        on_disk, original,
-        "file must be untouched when fix produces invalid Elm"
-    );
+    let on_disk = std::fs::read_to_string(&target)
+        .map_err(|e| fail(format!("file should still exist: {e}")))?;
+    check!(on_disk.as_str())
+        .satisfies(eq(original))
+        .context("file must be untouched when fix produces invalid Elm")?;
+    Ok(())
 }
 
 // ── ExportLintJson ──────────────────────────────────────────────────
 
 #[tokio::test]
-async fn export_lint_json_writes_file_and_status_info() {
+async fn export_lint_json_writes_file_and_status_info() -> TestResult {
     use elm_ast::span::{Position, Span};
     use elm_lint::rule::{LintError, Severity};
 
@@ -286,30 +297,32 @@ async fn export_lint_json_writes_file_and_status_info() {
     command::execute(Command::ExportLintJson(payload), project.src_dir(), tx).await;
 
     let msgs = drain(&mut rx).await;
-    assert!(
-        msgs.iter().any(|m| matches!(m, Msg::StatusInfo(_))),
-        "expected StatusInfo on successful export, got: {:?}",
-        tags(&msgs)
-    );
+    check!(msgs.iter().any(|m| matches!(m, Msg::StatusInfo(_))))
+        .satisfies(is_true())
+        .context(format!("expected StatusInfo on successful export, got: {:?}", tags(&msgs)))?;
 
     // File resolves to parent-of-src_dir / elm-assist-lint.json.
     let out_path = project.root.join("elm-assist-lint.json");
-    let json = std::fs::read_to_string(&out_path).expect("json file should exist");
-    let parsed: serde_json::Value = serde_json::from_str(&json).expect("json must be valid");
-    let arr = parsed.as_array().expect("root must be array");
-    assert_eq!(arr.len(), 1);
-    assert_eq!(arr[0]["rule"], "NoDebug");
-    assert_eq!(arr[0]["severity"], "warning");
-    assert_eq!(arr[0]["message"], "debug call found");
-    assert_eq!(arr[0]["file"], "src/A.elm");
-    assert_eq!(arr[0]["line"], 1);
-    assert_eq!(arr[0]["fixable"], false);
+    let json = std::fs::read_to_string(&out_path)
+        .map_err(|e| fail(format!("json file should exist: {e}")))?;
+    let parsed: serde_json::Value = serde_json::from_str(&json)
+        .map_err(|e| fail(format!("json must be valid: {e}")))?;
+    let arr = parsed.as_array()
+        .ok_or_else(|| fail("root must be array"))?;
+    check!(arr.len()).satisfies(eq(1))?;
+    check!(arr[0]["rule"].clone()).satisfies(eq(serde_json::json!("NoDebug")))?;
+    check!(arr[0]["severity"].clone()).satisfies(eq(serde_json::json!("warning")))?;
+    check!(arr[0]["message"].clone()).satisfies(eq(serde_json::json!("debug call found")))?;
+    check!(arr[0]["file"].clone()).satisfies(eq(serde_json::json!("src/A.elm")))?;
+    check!(arr[0]["line"].clone()).satisfies(eq(serde_json::json!(1)))?;
+    check!(arr[0]["fixable"].clone()).satisfies(eq(serde_json::json!(false)))?;
+    Ok(())
 }
 
 // ── Batch ───────────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn batch_runs_sub_commands_sequentially() {
+async fn batch_runs_sub_commands_sequentially() -> TestResult {
     let project = TempProject::new("batch");
     let a = project.path_in_src("A.elm");
     let b = project.path_in_src("B.elm");
@@ -328,6 +341,9 @@ async fn batch_runs_sub_commands_sequentially() {
     command::execute(batch, project.src_dir(), tx).await;
     let _ = drain(&mut rx).await;
 
-    assert_eq!(std::fs::read_to_string(&a).unwrap(), a_new);
-    assert_eq!(std::fs::read_to_string(&b).unwrap(), b_new);
+    check!(std::fs::read_to_string(&a).map_err(|e| fail(format!("read a: {e}")))?)
+        .satisfies(eq(a_new))?;
+    check!(std::fs::read_to_string(&b).map_err(|e| fail(format!("read b: {e}")))?)
+        .satisfies(eq(b_new))?;
+    Ok(())
 }

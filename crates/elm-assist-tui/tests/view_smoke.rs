@@ -16,13 +16,19 @@ use ratatui::backend::TestBackend;
 
 use elm_assist_tui::app::{AppState, Screen};
 use elm_assist_tui::view;
+use test_better::ErrorKind;
+use test_better::prelude::*;
 
-fn render_screen(state: &AppState) {
+fn fail(msg: impl Into<String>) -> TestError {
+    TestError::new(ErrorKind::Assertion).with_message(msg.into())
+}
+
+fn render_screen(state: &AppState) -> TestResult {
     let backend = TestBackend::new(120, 40);
-    let mut terminal = Terminal::new(backend).expect("TestBackend should construct");
+    let mut terminal = Terminal::new(backend).map_err(|e| fail(format!("TestBackend should construct: {e}")))?;
     terminal
         .draw(|frame| view::render(state, frame))
-        .expect("render should not error");
+        .map_err(|e| fail(format!("render should not error: {e}")))?;
 
     // Assert *something* was drawn — an empty buffer means the view
     // dispatch matched no arm or every arm returned before rendering.
@@ -31,15 +37,17 @@ fn render_screen(state: &AppState) {
         .content
         .iter()
         .any(|cell| !cell.symbol().trim().is_empty());
-    assert!(
-        any_nonempty,
-        "view::render produced an empty buffer for {:?}",
-        state.screen
-    );
+    check!(any_nonempty)
+        .satisfies(is_true())
+        .context(format!(
+            "view::render produced an empty buffer for {:?}",
+            state.screen
+        ))?;
+    Ok(())
 }
 
 #[test]
-fn all_screens_render_on_fresh_state() {
+fn all_screens_render_on_fresh_state() -> TestResult {
     // Fresh state has no lint results, no search, no fix review items,
     // etc. Any view that indexes naively will panic here.
     let screens = [
@@ -55,46 +63,48 @@ fn all_screens_render_on_fresh_state() {
     for screen in screens {
         let mut state = AppState::new("src".into());
         state.screen = screen;
-        render_screen(&state);
+        render_screen(&state)?;
     }
+    Ok(())
 }
 
 #[test]
-fn dashboard_renders_with_populated_counts() {
+fn dashboard_renders_with_populated_counts() -> TestResult {
     let mut state = AppState::new("src".into());
     state.screen = Screen::Dashboard;
     state.module_count = 42;
     state.file_count = 42;
     state.parse_error_count = 3;
-    render_screen(&state);
+    render_screen(&state)
 }
 
 #[test]
-fn status_bar_renders_info_and_error_messages() {
+fn status_bar_renders_info_and_error_messages() -> TestResult {
     let mut state = AppState::new("src".into());
     state.screen = Screen::Dashboard;
     state.status_message = Some("Lint: 5 findings in 12ms".into());
-    render_screen(&state);
+    render_screen(&state)?;
 
     state.status_message = Some("Export failed: disk full".into());
-    render_screen(&state);
+    render_screen(&state)
 }
 
 #[test]
-fn help_screen_renders() {
+fn help_screen_renders() -> TestResult {
     let mut state = AppState::new("src".into());
     state.screen = Screen::Help;
-    render_screen(&state);
+    render_screen(&state)
 }
 
 #[test]
-fn tiny_terminal_does_not_panic() {
+fn tiny_terminal_does_not_panic() -> TestResult {
     // Pathologically small terminal — make sure layout constraints
     // don't trigger arithmetic underflow or slice panics.
     let backend = TestBackend::new(20, 5);
-    let mut terminal = Terminal::new(backend).unwrap();
+    let mut terminal = Terminal::new(backend).or_fail_with("TestBackend should construct")?;
     let state = AppState::new("src".into());
     terminal
         .draw(|frame| view::render(&state, frame))
-        .expect("render should survive tiny terminals");
+        .map_err(|e| fail(format!("render should survive tiny terminals: {e}")))?;
+    Ok(())
 }

@@ -9,6 +9,12 @@ use tower_lsp::jsonrpc::{Request, Response};
 use tower_lsp::lsp_types::*;
 
 use elm_assist_lsp::backend::Backend;
+use test_better::ErrorKind;
+use test_better::prelude::*;
+
+fn fail(msg: impl Into<String>) -> TestError {
+    TestError::new(ErrorKind::Assertion).with_message(msg.into())
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -143,55 +149,61 @@ async fn shutdown(service: &mut LspService<Backend>) {
 // ── Tests ───────────────────────────────────────────────────────────
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn initialize_returns_capabilities() {
+async fn initialize_returns_capabilities() -> TestResult {
     let (mut service, _, result) = init_service().await;
 
-    assert_eq!(
-        result.capabilities.text_document_sync,
-        Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL))
-    );
-    assert_eq!(
-        result.capabilities.code_action_provider,
-        Some(CodeActionProviderCapability::Simple(true))
-    );
-    assert_eq!(
-        result.capabilities.hover_provider,
-        Some(HoverProviderCapability::Simple(true))
-    );
+    check!(result.capabilities.text_document_sync).satisfies(eq(Some(
+        TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL),
+    )))?;
+    check!(result.capabilities.code_action_provider).satisfies(eq(Some(
+        CodeActionProviderCapability::Simple(true),
+    )))?;
+    check!(result.capabilities.hover_provider)
+        .satisfies(eq(Some(HoverProviderCapability::Simple(true))))?;
 
-    let info = result.server_info.unwrap();
-    assert_eq!(info.name, "elm-assist-lsp");
+    let info = result
+        .server_info
+        .ok_or_else(|| fail("expected server_info"))?;
+    check!(info.name.as_str()).satisfies(eq("elm-assist-lsp"))?;
 
     shutdown(&mut service).await;
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn did_open_publishes_diagnostics() {
+async fn did_open_publishes_diagnostics() -> TestResult {
     let (mut service, messages, _) = init_service().await;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").unwrap();
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
+        .or_fail_with("parse URI")?;
     let source = "module Test exposing (..)\n\nimport Html\n\nx = 1\n";
 
     clear_messages(&messages).await;
     did_open(&mut service, &uri, source).await;
 
     let diags = wait_for_diagnostics(&messages, &uri, 300).await;
-    assert!(!diags.is_empty(), "expected diagnostics for opened file");
+    check!(!diags.is_empty())
+        .satisfies(is_true())
+        .context("expected diagnostics for opened file")?;
 
     let all_diags: Vec<_> = diags.iter().flat_map(|d| &d.diagnostics).collect();
     let has_unused_import = all_diags
         .iter()
         .any(|d| d.code == Some(NumberOrString::String("NoUnusedImports".into())));
-    assert!(has_unused_import, "expected NoUnusedImports diagnostic");
+    check!(has_unused_import)
+        .satisfies(is_true())
+        .context("expected NoUnusedImports diagnostic")?;
 
     shutdown(&mut service).await;
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn did_change_updates_diagnostics() {
+async fn did_change_updates_diagnostics() -> TestResult {
     let (mut service, messages, _) = init_service().await;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").unwrap();
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
+        .or_fail_with("parse URI")?;
 
     // Open with an unused import.
     did_open(
@@ -220,20 +232,21 @@ async fn did_change_updates_diagnostics() {
             .diagnostics
             .iter()
             .any(|d| d.code == Some(NumberOrString::String("NoUnusedImports".into())));
-        assert!(
-            !has_unused_import,
-            "NoUnusedImports should be gone after removing import"
-        );
+        check!(has_unused_import)
+            .satisfies(is_false())
+            .context("NoUnusedImports should be gone after removing import")?;
     }
 
     shutdown(&mut service).await;
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn did_close_clears_diagnostics() {
+async fn did_close_clears_diagnostics() -> TestResult {
     let (mut service, messages, _) = init_service().await;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").unwrap();
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
+        .or_fail_with("parse URI")?;
 
     did_open(
         &mut service,
@@ -255,20 +268,21 @@ async fn did_close_clears_diagnostics() {
 
     let diags = wait_for_diagnostics(&messages, &uri, 300).await;
     if let Some(last) = diags.last() {
-        assert!(
-            last.diagnostics.is_empty(),
-            "diagnostics should be cleared on close"
-        );
+        check!(last.diagnostics.is_empty())
+            .satisfies(is_true())
+            .context("diagnostics should be cleared on close")?;
     }
 
     shutdown(&mut service).await;
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn hover_on_diagnostic_returns_rule_info() {
+async fn hover_on_diagnostic_returns_rule_info() -> TestResult {
     let (mut service, _messages, _) = init_service().await;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").unwrap();
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
+        .or_fail_with("parse URI")?;
     let source = "module Test exposing (..)\n\nx = Debug.log \"hi\" 1\n";
 
     did_open(&mut service, &uri, source).await;
@@ -294,28 +308,32 @@ async fn hover_on_diagnostic_returns_rule_info() {
     let resp = service.call(req).await.unwrap();
     let result = response_result(resp);
 
-    assert!(!result.is_null(), "hover should return a result");
+    check!(!result.is_null())
+        .satisfies(is_true())
+        .context("hover should return a result")?;
 
-    let hover: Hover = serde_json::from_value(result).expect("valid Hover");
+    let hover: Hover = serde_json::from_value(result)
+        .map_err(|e| fail(format!("valid Hover: {e}")))?;
     match hover.contents {
         HoverContents::Markup(markup) => {
-            assert!(
-                markup.value.contains("NoDebug"),
+            check!(markup.value.as_str()).satisfies(contains_str("NoDebug")).context(format!(
                 "hover should mention rule name, got: {}",
                 markup.value
-            );
+            ))?;
         }
-        other => panic!("expected Markup hover, got: {other:?}"),
+        other => return Err(fail(format!("expected Markup hover, got: {other:?}"))),
     }
 
     shutdown(&mut service).await;
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn hover_outside_diagnostic_returns_null() {
+async fn hover_outside_diagnostic_returns_null() -> TestResult {
     let (mut service, _, _) = init_service().await;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").unwrap();
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
+        .or_fail_with("parse URI")?;
     let source = "module Test exposing (x)\n\n\n{-| A value. -}\nx : Int\nx =\n    1\n";
 
     did_open(&mut service, &uri, source).await;
@@ -340,16 +358,20 @@ async fn hover_outside_diagnostic_returns_null() {
 
     let resp = service.call(req).await.unwrap();
     let result = response_result(resp);
-    assert!(result.is_null(), "hover outside diagnostic should be null");
+    check!(result.is_null())
+        .satisfies(is_true())
+        .context("hover outside diagnostic should be null")?;
 
     shutdown(&mut service).await;
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn code_action_returns_fix() {
+async fn code_action_returns_fix() -> TestResult {
     let (mut service, messages, _) = init_service().await;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").unwrap();
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
+        .or_fail_with("parse URI")?;
     // NoUnusedImports has a fix (removing the import line).
     let source = "module Test exposing (..)\n\nimport Html\n\nx = 1\n";
 
@@ -362,11 +384,10 @@ async fn code_action_returns_fix() {
         .find(|d| d.code == Some(NumberOrString::String("NoUnusedImports".into())))
         .cloned();
 
-    assert!(
-        target_diag.is_some(),
+    check!(target_diag.is_some()).satisfies(is_true()).context(format!(
         "expected NoUnusedImports diagnostic, got: {:?}",
         all_diags.iter().map(|d| &d.code).collect::<Vec<_>>()
-    );
+    ))?;
 
     if let Some(diag) = &target_diag {
         let params = CodeActionParams {
@@ -389,34 +410,39 @@ async fn code_action_returns_fix() {
         let resp = service.call(req).await.unwrap();
         let result = response_result(resp);
 
-        assert!(
-            !result.is_null(),
+        check!(!result.is_null()).satisfies(is_true()).context(format!(
             "should return code actions for range {:?}, diag code: {:?}",
             diag.range,
             diag.code
-        );
-        let actions: Vec<CodeActionOrCommand> =
-            serde_json::from_value(result).expect("valid code actions");
-        assert!(!actions.is_empty(), "should have at least one code action");
+        ))?;
+        let actions: Vec<CodeActionOrCommand> = serde_json::from_value(result)
+            .map_err(|e| fail(format!("valid code actions: {e}")))?;
+        check!(!actions.is_empty())
+            .satisfies(is_true())
+            .context("should have at least one code action")?;
 
         if let CodeActionOrCommand::CodeAction(action) = &actions[0] {
-            assert_eq!(action.kind, Some(CodeActionKind::QUICKFIX));
-            assert!(action.edit.is_some(), "action should have a workspace edit");
+            check!(action.kind.clone()).satisfies(eq(Some(CodeActionKind::QUICKFIX)))?;
+            check!(action.edit.is_some())
+                .satisfies(is_true())
+                .context("action should have a workspace edit")?;
         } else {
-            panic!("expected CodeAction, got Command");
+            return Err(fail("expected CodeAction, got Command"));
         }
     } else {
-        panic!("expected NoDebug diagnostic");
+        return Err(fail("expected NoDebug diagnostic"));
     }
 
     shutdown(&mut service).await;
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn code_action_on_clean_range_returns_none() {
+async fn code_action_on_clean_range_returns_none() -> TestResult {
     let (mut service, _, _) = init_service().await;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").unwrap();
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
+        .or_fail_with("parse URI")?;
     let source = "module Test exposing (x)\n\n\n{-| A value. -}\nx : Int\nx =\n    1\n";
 
     did_open(&mut service, &uri, source).await;
@@ -450,16 +476,20 @@ async fn code_action_on_clean_range_returns_none() {
 
     let resp = service.call(req).await.unwrap();
     let result = response_result(resp);
-    assert!(result.is_null(), "no code actions expected on clean range");
+    check!(result.is_null())
+        .satisfies(is_true())
+        .context("no code actions expected on clean range")?;
 
     shutdown(&mut service).await;
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn parse_error_shows_as_diagnostic() {
+async fn parse_error_shows_as_diagnostic() -> TestResult {
     let (mut service, messages, _) = init_service().await;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").unwrap();
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
+        .or_fail_with("parse URI")?;
     let source = "module Test exposing (..)\n\nx = {{{ invalid\n";
 
     clear_messages(&messages).await;
@@ -471,25 +501,31 @@ async fn parse_error_shows_as_diagnostic() {
     let has_parse_error = all_diags
         .iter()
         .any(|d| d.code == Some(NumberOrString::String("parse-error".into())));
-    assert!(has_parse_error, "expected parse-error diagnostic");
+    check!(has_parse_error)
+        .satisfies(is_true())
+        .context("expected parse-error diagnostic")?;
 
     let parse_errors: Vec<_> = all_diags
         .iter()
         .filter(|d| d.code == Some(NumberOrString::String("parse-error".into())))
         .collect();
     for pe in &parse_errors {
-        assert_eq!(pe.severity, Some(DiagnosticSeverity::ERROR));
+        check!(pe.severity).satisfies(eq(Some(DiagnosticSeverity::ERROR)))?;
     }
 
     shutdown(&mut service).await;
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn shutdown_succeeds() {
+async fn shutdown_succeeds() -> TestResult {
     let (mut service, _, _) = init_service().await;
 
     let req = Request::build("shutdown").id(99).finish();
     let resp = service.call(req).await.unwrap();
     let result = response_result(resp);
-    assert!(result.is_null(), "shutdown should return null");
+    check!(result.is_null())
+        .satisfies(is_true())
+        .context("shutdown should return null")?;
+    Ok(())
 }

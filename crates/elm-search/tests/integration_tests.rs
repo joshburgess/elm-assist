@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use elm_ast::parse;
 use elm_search::query::parse_query;
 use elm_search::search::search;
+use test_better::prelude::*;
 
 fn find_elm_files(dir: &str) -> Vec<PathBuf> {
     let mut files = Vec::new();
@@ -103,7 +104,7 @@ fn search_fixtures(query_str: &str) -> usize {
 /// Every query type should find at least one result across the full corpus.
 /// This proves all 10 search capabilities work on real code, not just synthetic snippets.
 #[test]
-fn every_query_type_finds_results() {
+fn every_query_type_finds_results() -> TestResult {
     let queries = [
         ("returns Maybe", "functions returning Maybe"),
         ("type Int", "functions using Int in their signature"),
@@ -126,46 +127,57 @@ fn every_query_type_finds_results() {
         eprintln!("  {query}: {count} matches");
     }
 
-    assert!(
-        missing.is_empty(),
-        "these query types found 0 results across 291 real files:\n  {}",
-        missing.join("\n  ")
-    );
+    check!(missing.is_empty())
+        .satisfies(is_true())
+        .context(format!(
+            "these query types found 0 results across 291 real files:\n  {}",
+            missing.join("\n  ")
+        ))?;
+    Ok(())
 }
 
 #[test]
-fn returns_maybe_finds_results_in_core() {
+fn returns_maybe_finds_results_in_core() -> TestResult {
     let count = search_fixtures("returns Maybe");
-    assert!(
-        count > 0,
-        "should find functions returning Maybe in elm/core"
-    );
+    check!(count > 0)
+        .satisfies(is_true())
+        .context("should find functions returning Maybe in elm/core")?;
+    Ok(())
 }
 
 #[test]
-fn case_on_just_finds_results_in_core() {
+fn case_on_just_finds_results_in_core() -> TestResult {
     let count = search_fixtures("case-on Just");
-    assert!(
-        count > 0,
-        "should find case expressions matching Just in elm/core"
-    );
+    check!(count > 0)
+        .satisfies(is_true())
+        .context("should find case expressions matching Just in elm/core")?;
+    Ok(())
 }
 
 #[test]
-fn unused_args_finds_results_in_core() {
+fn unused_args_finds_results_in_core() -> TestResult {
     let count = search_fixtures("unused-args");
     // elm/core has a few unused args in kernel-backed modules.
-    assert!(count > 0, "should find unused args in elm/core");
+    check!(count > 0)
+        .satisfies(is_true())
+        .context("should find unused args in elm/core")?;
+    Ok(())
 }
 
 #[test]
-fn def_finds_common_names() {
+fn def_finds_common_names() -> TestResult {
     let count = search_fixtures("def map");
-    assert!(count > 0, "should find definitions containing 'map'");
+    check!(count > 0)
+        .satisfies(is_true())
+        .context("should find definitions containing 'map'")?;
+    Ok(())
 }
 
 #[test]
-fn expr_case_finds_case_expressions() {
+fn expr_case_finds_case_expressions() -> TestResult {
     let count = search_fixtures("expr case");
-    assert!(count > 0, "should find case expressions in elm/core");
+    check!(count > 0)
+        .satisfies(is_true())
+        .context("should find case expressions in elm/core")?;
+    Ok(())
 }

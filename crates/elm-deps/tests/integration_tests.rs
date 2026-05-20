@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use elm_ast::module_header::ModuleHeader;
 use elm_ast::parse;
 use elm_deps::graph::{build_graph, find_cycles};
+use test_better::prelude::*;
 
 fn find_elm_files(dir: &str) -> Vec<PathBuf> {
     let mut files = Vec::new();
@@ -113,9 +114,9 @@ fn parse_all_modules() -> Vec<(String, Vec<String>)> {
 
 /// build_graph and find_cycles should not panic on real-world module graphs.
 #[test]
-fn graph_no_crash_on_all_fixtures() {
+fn graph_no_crash_on_all_fixtures() -> TestResult {
     let modules = parse_all_modules();
-    assert!(!modules.is_empty(), "no modules found in fixtures");
+    check!(!modules.is_empty()).satisfies(is_true()).context("no modules found in fixtures")?;
 
     let (graph, _project_modules) = build_graph(&modules);
     let cycles = find_cycles(&graph);
@@ -126,49 +127,48 @@ fn graph_no_crash_on_all_fixtures() {
         graph.values().map(|v| v.len()).sum::<usize>(),
         cycles.len()
     );
+    Ok(())
 }
 
 /// build_graph should correctly identify internal vs external dependencies.
 #[test]
-fn graph_filters_external_deps() {
+fn graph_filters_external_deps() -> TestResult {
     let modules = parse_all_modules();
     let (graph, project_modules) = build_graph(&modules);
 
     // All graph keys should be project modules.
     for key in graph.keys() {
-        assert!(
-            project_modules.contains(*key),
-            "graph key '{key}' should be a project module"
-        );
+        check!(project_modules.contains(*key))
+            .satisfies(is_true())
+            .context(format!("graph key '{key}' should be a project module"))?;
     }
 
     // All graph edges should point to project modules only.
     for (module, deps) in &graph {
         for dep in deps {
-            assert!(
-                project_modules.contains(*dep),
-                "'{module}' -> '{dep}': dependency should be a project module"
-            );
+            check!(project_modules.contains(*dep))
+                .satisfies(is_true())
+                .context(format!("'{module}' -> '{dep}': dependency should be a project module"))?;
         }
     }
 
     // Graph should have internal edges (modules importing each other).
     let total_edges: usize = graph.values().map(|v| v.len()).sum();
-    assert!(
-        total_edges > 0,
-        "graph should have internal edges between project modules"
-    );
+    check!(total_edges > 0)
+        .satisfies(is_true())
+        .context("graph should have internal edges between project modules")?;
 
     eprintln!(
         "{} modules, {} internal edges (external deps filtered out)",
         graph.len(),
         total_edges
     );
+    Ok(())
 }
 
 /// Known dependency relationships in elm/core should be present.
 #[test]
-fn graph_elm_core_known_deps() {
+fn graph_elm_core_known_deps() -> TestResult {
     // Parse just elm/core.
     let mut modules = Vec::new();
     for file in find_elm_files("../../test-fixtures/core/src") {
@@ -196,26 +196,23 @@ fn graph_elm_core_known_deps() {
     let (graph, project_modules) = build_graph(&modules);
 
     // elm/core should have well-known modules.
-    assert!(project_modules.contains("List"), "should contain List");
-    assert!(project_modules.contains("Maybe"), "should contain Maybe");
-    assert!(project_modules.contains("String"), "should contain String");
-    assert!(project_modules.contains("Dict"), "should contain Dict");
+    check!(project_modules.contains("List")).satisfies(is_true()).context("should contain List")?;
+    check!(project_modules.contains("Maybe")).satisfies(is_true()).context("should contain Maybe")?;
+    check!(project_modules.contains("String")).satisfies(is_true()).context("should contain String")?;
+    check!(project_modules.contains("Dict")).satisfies(is_true()).context("should contain Dict")?;
 
     // Dict imports List (for toList, fromList, etc.)
     if let Some(deps) = graph.get("Dict") {
-        assert!(
-            deps.contains(&"List"),
-            "Dict should depend on List, got: {:?}",
-            deps
-        );
+        check!(deps.contains(&"List"))
+            .satisfies(is_true())
+            .context(format!("Dict should depend on List, got: {:?}", deps))?;
     }
 
     // Leaf modules: Basics should have no internal deps (it's the foundation).
     if let Some(deps) = graph.get("Basics") {
-        assert!(
-            deps.is_empty(),
-            "Basics should have no internal deps, got: {:?}",
-            deps
-        );
+        check!(deps.is_empty())
+            .satisfies(is_true())
+            .context(format!("Basics should have no internal deps, got: {:?}", deps))?;
     }
+    Ok(())
 }

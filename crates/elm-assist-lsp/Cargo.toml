@@ -16,3 +16,4 @@ serde = { version = "1", features = ["derive"] }
 [dev-dependencies]
 futures = "0.3"
 tower = "0.4"
+test-better = "0.2.2"

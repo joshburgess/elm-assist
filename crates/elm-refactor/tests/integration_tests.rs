@@ -5,6 +5,7 @@ use elm_ast::module_header::ModuleHeader;
 use elm_ast::parse;
 use elm_refactor::commands::sort_imports::sort_imports;
 use elm_refactor::project::{Project, ProjectFile};
+use test_better::prelude::*;
 
 fn find_elm_files(dir: &str) -> Vec<PathBuf> {
     let mut files = Vec::new();
@@ -115,9 +116,11 @@ fn load_all_fixtures() -> Project {
 
 /// sort_imports should not panic on any real-world project.
 #[test]
-fn sort_imports_no_crash_on_all_fixtures() {
+fn sort_imports_no_crash_on_all_fixtures() -> TestResult {
     let mut project = load_all_fixtures();
-    assert!(!project.files.is_empty(), "no fixture files loaded");
+    check!(!project.files.is_empty())
+        .satisfies(is_true())
+        .context("no fixture files loaded")?;
 
     // Should not panic.
     let changes = sort_imports(&mut project);
@@ -127,11 +130,12 @@ fn sort_imports_no_crash_on_all_fixtures() {
         project.files.len(),
         changes
     );
+    Ok(())
 }
 
 /// After sort_imports, every module's imports should actually be sorted.
 #[test]
-fn sort_imports_produces_sorted_output() {
+fn sort_imports_produces_sorted_output() -> TestResult {
     let mut project = load_all_fixtures();
     sort_imports(&mut project);
 
@@ -146,17 +150,18 @@ fn sort_imports_produces_sorted_output() {
         let mut sorted = import_names.clone();
         sorted.sort();
 
-        assert_eq!(
-            import_names, sorted,
+        let ctx = format!(
             "imports should be sorted in {}: got {:?}",
             file.module_name, import_names
         );
+        check!(import_names).satisfies(eq(sorted)).context(ctx)?;
     }
+    Ok(())
 }
 
 /// sort_imports result should still be parseable (round-trips).
 #[test]
-fn sort_imports_output_reparses() {
+fn sort_imports_output_reparses() -> TestResult {
     let mut project = load_all_fixtures();
     sort_imports(&mut project);
 
@@ -176,39 +181,43 @@ fn sort_imports_output_reparses() {
         }
     }
 
-    assert!(
-        failures.is_empty(),
-        "sort_imports output failed to reparse:\n{}",
-        failures.join("\n")
-    );
+    check!(failures.is_empty())
+        .satisfies(is_true())
+        .context(format!(
+            "sort_imports output failed to reparse:\n{}",
+            failures.join("\n")
+        ))?;
+    Ok(())
 }
 
 /// qualify_imports should not panic and should find work to do.
 #[test]
-fn qualify_imports_no_crash_on_all_fixtures() {
+fn qualify_imports_no_crash_on_all_fixtures() -> TestResult {
     use elm_refactor::commands::qualify_imports::qualify_imports;
 
     let mut project = load_all_fixtures();
-    assert!(!project.files.is_empty(), "no fixture files loaded");
+    check!(!project.files.is_empty())
+        .satisfies(is_true())
+        .context("no fixture files loaded")?;
 
     let changes = qualify_imports(&mut project);
 
     // Real packages use `exposing (foo)` patterns, so there should be work.
-    assert!(
-        changes > 0,
-        "qualify_imports should make changes on real code"
-    );
+    check!(changes > 0)
+        .satisfies(is_true())
+        .context("qualify_imports should make changes on real code")?;
 
     eprintln!(
         "qualify_imports ran on {} files, made {} changes",
         project.files.len(),
         changes
     );
+    Ok(())
 }
 
 /// qualify_imports result should still be parseable.
 #[test]
-fn qualify_imports_output_reparses() {
+fn qualify_imports_output_reparses() -> TestResult {
     use elm_refactor::commands::qualify_imports::qualify_imports;
 
     let mut project = load_all_fixtures();
@@ -230,9 +239,11 @@ fn qualify_imports_output_reparses() {
         }
     }
 
-    assert!(
-        failures.is_empty(),
-        "qualify_imports output failed to reparse:\n{}",
-        failures.join("\n")
-    );
+    check!(failures.is_empty())
+        .satisfies(is_true())
+        .context(format!(
+            "qualify_imports output failed to reparse:\n{}",
+            failures.join("\n")
+        ))?;
+    Ok(())
 }
