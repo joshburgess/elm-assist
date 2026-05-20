@@ -510,8 +510,8 @@ foo x =
     let all_rules = rules::all_rules();
 
     for (rule_name, source) in test_cases {
-        let module = parse(source)
-            .map_err(|e| fail(format!("parse failed for {rule_name}: {e:?}")))?;
+        let module =
+            parse(source).map_err(|e| fail(format!("parse failed for {rule_name}: {e:?}")))?;
         let ctx = LintContext {
             module: &module,
             source,
@@ -583,10 +583,8 @@ foo x =
         let src_a = "port module Ports.A exposing (..)\n\nport sendMessage : String -> Cmd msg";
         let src_b = "port module Ports.B exposing (..)\n\nport sendMessage : String -> Cmd msg";
 
-        let mod_a = parse(src_a)
-            .map_err(|e| fail(format!("parse failed for Ports.A: {e:?}")))?;
-        let mod_b = parse(src_b)
-            .map_err(|e| fail(format!("parse failed for Ports.B: {e:?}")))?;
+        let mod_a = parse(src_a).map_err(|e| fail(format!("parse failed for Ports.A: {e:?}")))?;
+        let mod_b = parse(src_b).map_err(|e| fail(format!("parse failed for Ports.B: {e:?}")))?;
         let info_a = collect_module_info(&mod_a);
         let info_b = collect_module_info(&mod_b);
         let name_a = info_a.module_name.join(".");
@@ -620,9 +618,8 @@ foo x =
     // Test NoInconsistentAliases separately — it needs per-rule config to activate.
     {
         let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-        let config: toml::Value =
-            toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#)
-                .map_err(|e| fail(format!("toml parse failed: {e}")))?;
+        let config: toml::Value = toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#)
+            .map_err(|e| fail(format!("toml parse failed: {e}")))?;
         rule.configure(&config)
             .map_err(|e| fail(format!("configure failed: {e}")))?;
 
@@ -638,11 +635,9 @@ foo x =
             project: None,
         };
         let errors = rule.check(&ctx);
-        check!(!errors.is_empty())
-            .satisfies(is_true())
-            .context(
-                "rule NoInconsistentAliases should fire on test input but produced 0 errors",
-            )?;
+        check!(!errors.is_empty()).satisfies(is_true()).context(
+            "rule NoInconsistentAliases should fire on test input but produced 0 errors",
+        )?;
     }
 
     // Test NoUnusedDependencies separately — it needs elm.json + project context.
@@ -687,9 +682,7 @@ foo x =
         let errors = rule.check(&ctx);
         check!(!errors.is_empty())
             .satisfies(is_true())
-            .context(
-                "rule NoUnusedDependencies should fire on test input but produced 0 errors",
-            )?;
+            .context("rule NoUnusedDependencies should fire on test input but produced 0 errors")?;
     }
 
     Ok(())

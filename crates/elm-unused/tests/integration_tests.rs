@@ -241,8 +241,7 @@ fn collect_extracts_definitions_and_references() -> TestResult {
     // elm/core's List module should have well-known definitions.
     let source = fs::read_to_string("../../test-fixtures/core/src/List.elm")
         .or_fail_with("List.elm should exist")?;
-    let module = parse(&source)
-        .map_err(|e| fail(format!("List.elm should parse: {e:?}")))?;
+    let module = parse(&source).map_err(|e| fail(format!("List.elm should parse: {e:?}")))?;
     let info = collect_module_info(&module);
 
     check!(info.module_name).satisfies(eq(vec!["List".to_string()]))?;

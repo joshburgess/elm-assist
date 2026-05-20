@@ -116,7 +116,9 @@ fn parse_all_modules() -> Vec<(String, Vec<String>)> {
 #[test]
 fn graph_no_crash_on_all_fixtures() -> TestResult {
     let modules = parse_all_modules();
-    check!(!modules.is_empty()).satisfies(is_true()).context("no modules found in fixtures")?;
+    check!(!modules.is_empty())
+        .satisfies(is_true())
+        .context("no modules found in fixtures")?;
 
     let (graph, _project_modules) = build_graph(&modules);
     let cycles = find_cycles(&graph);
@@ -148,7 +150,9 @@ fn graph_filters_external_deps() -> TestResult {
         for dep in deps {
             check!(project_modules.contains(*dep))
                 .satisfies(is_true())
-                .context(format!("'{module}' -> '{dep}': dependency should be a project module"))?;
+                .context(format!(
+                    "'{module}' -> '{dep}': dependency should be a project module"
+                ))?;
         }
     }
 
@@ -196,10 +200,18 @@ fn graph_elm_core_known_deps() -> TestResult {
     let (graph, project_modules) = build_graph(&modules);
 
     // elm/core should have well-known modules.
-    check!(project_modules.contains("List")).satisfies(is_true()).context("should contain List")?;
-    check!(project_modules.contains("Maybe")).satisfies(is_true()).context("should contain Maybe")?;
-    check!(project_modules.contains("String")).satisfies(is_true()).context("should contain String")?;
-    check!(project_modules.contains("Dict")).satisfies(is_true()).context("should contain Dict")?;
+    check!(project_modules.contains("List"))
+        .satisfies(is_true())
+        .context("should contain List")?;
+    check!(project_modules.contains("Maybe"))
+        .satisfies(is_true())
+        .context("should contain Maybe")?;
+    check!(project_modules.contains("String"))
+        .satisfies(is_true())
+        .context("should contain String")?;
+    check!(project_modules.contains("Dict"))
+        .satisfies(is_true())
+        .context("should contain Dict")?;
 
     // Dict imports List (for toList, fromList, etc.)
     if let Some(deps) = graph.get("Dict") {
@@ -212,7 +224,10 @@ fn graph_elm_core_known_deps() -> TestResult {
     if let Some(deps) = graph.get("Basics") {
         check!(deps.is_empty())
             .satisfies(is_true())
-            .context(format!("Basics should have no internal deps, got: {:?}", deps))?;
+            .context(format!(
+                "Basics should have no internal deps, got: {:?}",
+                deps
+            ))?;
     }
     Ok(())
 }

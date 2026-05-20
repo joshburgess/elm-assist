@@ -196,18 +196,12 @@ aliases = { "Json.Decode" = "Decode", "Html.Attributes" = "Attr" }
         let max_opts = config
             .rule_options("NoMaxLineLength")
             .or_fail_with("NoMaxLineLength options present")?;
-        check!(
-            max_opts
-                .get("max_length")
-                .and_then(|v| v.as_integer())
-        )
-        .satisfies(eq(Some(100)))?;
+        check!(max_opts.get("max_length").and_then(|v| v.as_integer())).satisfies(eq(Some(100)))?;
 
         let cog_opts = config
             .rule_options("CognitiveComplexity")
             .or_fail_with("CognitiveComplexity options present")?;
-        check!(cog_opts.get("threshold").and_then(|v| v.as_integer()))
-            .satisfies(eq(Some(20)))?;
+        check!(cog_opts.get("threshold").and_then(|v| v.as_integer())).satisfies(eq(Some(20)))?;
 
         let alias_opts = config
             .rule_options("NoInconsistentAliases")
@@ -247,8 +241,7 @@ max_length = 80
         let opts = config
             .rule_options("NoMaxLineLength")
             .or_fail_with("NoMaxLineLength options present")?;
-        check!(opts.get("max_length").and_then(|v| v.as_integer()))
-            .satisfies(eq(Some(80)))?;
+        check!(opts.get("max_length").and_then(|v| v.as_integer())).satisfies(eq(Some(80)))?;
         Ok(())
     }
 }

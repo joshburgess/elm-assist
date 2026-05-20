@@ -55,8 +55,7 @@ impl TempProject {
     fn write(&self, relpath: &str, content: &str) -> Result<(), TestError> {
         let p = self.root.join("src").join(relpath);
         if let Some(parent) = p.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| fail(format!("create parent dir: {e}")))?;
+            std::fs::create_dir_all(parent).map_err(|e| fail(format!("create parent dir: {e}")))?;
         }
         std::fs::write(&p, content).map_err(|e| fail(format!("write {p:?}: {e}")))?;
         Ok(())
@@ -134,9 +133,16 @@ async fn scan_project_reports_module_counts() -> TestResult {
             } => Some((*module_count, *file_count, *parse_error_count)),
             _ => None,
         })
-        .ok_or_else(|| fail(format!("expected Msg::ProjectScanned, got: {:?}", tags(&msgs))))?;
+        .ok_or_else(|| {
+            fail(format!(
+                "expected Msg::ProjectScanned, got: {:?}",
+                tags(&msgs)
+            ))
+        })?;
 
-    check!(scanned).satisfies(eq((2, 2, 0))).context("module, file, parse_error counts")?;
+    check!(scanned)
+        .satisfies(eq((2, 2, 0)))
+        .context("module, file, parse_error counts")?;
     Ok(())
 }
 
@@ -161,11 +167,22 @@ async fn scan_project_counts_parse_errors() -> TestResult {
             } => Some((*module_count, *file_count, *parse_error_count)),
             _ => None,
         })
-        .ok_or_else(|| fail(format!("expected Msg::ProjectScanned, got: {:?}", tags(&msgs))))?;
+        .ok_or_else(|| {
+            fail(format!(
+                "expected Msg::ProjectScanned, got: {:?}",
+                tags(&msgs)
+            ))
+        })?;
 
-    check!(files).satisfies(eq(2)).context("both files discovered")?;
-    check!(modules).satisfies(eq(1)).context("only the valid file parses into a module")?;
-    check!(parse_errs).satisfies(eq(1)).context("one parse error reported")?;
+    check!(files)
+        .satisfies(eq(2))
+        .context("both files discovered")?;
+    check!(modules)
+        .satisfies(eq(1))
+        .context("only the valid file parses into a module")?;
+    check!(parse_errs)
+        .satisfies(eq(1))
+        .context("one parse error reported")?;
     Ok(())
 }
 
@@ -229,11 +246,16 @@ async fn apply_fix_writes_when_result_parses() -> TestResult {
     let msgs = drain(&mut rx).await;
     check!(!msgs.iter().any(|m| matches!(m, Msg::StatusError(_))))
         .satisfies(is_true())
-        .context(format!("valid fix should not emit StatusError, got: {:?}", tags(&msgs)))?;
+        .context(format!(
+            "valid fix should not emit StatusError, got: {:?}",
+            tags(&msgs)
+        ))?;
 
-    let written = std::fs::read_to_string(&target)
-        .map_err(|e| fail(format!("file should exist: {e}")))?;
-    check!(written).satisfies(eq(new_source)).context("file should contain the fixed source")?;
+    let written =
+        std::fs::read_to_string(&target).map_err(|e| fail(format!("file should exist: {e}")))?;
+    check!(written)
+        .satisfies(eq(new_source))
+        .context("file should contain the fixed source")?;
     Ok(())
 }
 
@@ -257,7 +279,10 @@ async fn apply_fix_rejects_invalid_elm_without_writing() -> TestResult {
     let msgs = drain(&mut rx).await;
     check!(msgs.iter().any(|m| matches!(m, Msg::StatusError(_))))
         .satisfies(is_true())
-        .context(format!("invalid fix should emit StatusError, got: {:?}", tags(&msgs)))?;
+        .context(format!(
+            "invalid fix should emit StatusError, got: {:?}",
+            tags(&msgs)
+        ))?;
 
     let on_disk = std::fs::read_to_string(&target)
         .map_err(|e| fail(format!("file should still exist: {e}")))?;
@@ -302,15 +327,19 @@ async fn export_lint_json_writes_file_and_status_info() -> TestResult {
     let msgs = drain(&mut rx).await;
     check!(msgs.iter().any(|m| matches!(m, Msg::StatusInfo(_))))
         .satisfies(is_true())
-        .context(format!("expected StatusInfo on successful export, got: {:?}", tags(&msgs)))?;
+        .context(format!(
+            "expected StatusInfo on successful export, got: {:?}",
+            tags(&msgs)
+        ))?;
 
     // File resolves to parent-of-src_dir / elm-assist-lint.json.
     let out_path = project.root.join("elm-assist-lint.json");
     let json = std::fs::read_to_string(&out_path)
         .map_err(|e| fail(format!("json file should exist: {e}")))?;
-    let parsed: serde_json::Value = serde_json::from_str(&json)
-        .map_err(|e| fail(format!("json must be valid: {e}")))?;
-    let arr = parsed.as_array()
+    let parsed: serde_json::Value =
+        serde_json::from_str(&json).map_err(|e| fail(format!("json must be valid: {e}")))?;
+    let arr = parsed
+        .as_array()
         .ok_or_else(|| fail("root must be array"))?;
     check!(arr.len()).satisfies(eq(1))?;
     check!(arr[0]["rule"].clone()).satisfies(eq(serde_json::json!("NoDebug")))?;

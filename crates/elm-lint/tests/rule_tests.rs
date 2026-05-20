@@ -556,8 +556,9 @@ update msg model =
 view model =
     div [] [ text (String.fromInt model.count) ]
 "#;
-    let module = parse(source)
-        .map_err(|e| TestError::new(ErrorKind::Assertion).with_message(format!("parse failed: {e:?}")))?;
+    let module = parse(source).map_err(|e| {
+        TestError::new(ErrorKind::Assertion).with_message(format!("parse failed: {e:?}"))
+    })?;
     let ctx = LintContext {
         module: &module,
         source,
@@ -889,19 +890,25 @@ fn no_list_literal_concat_skips_empty_operand() -> TestResult {
         "module T exposing (..)\n\nx = [] ++ [ 1, 2, 3 ]",
         &rules::no_list_literal_concat::NoListLiteralConcat,
     );
-    check!(empty_left).satisfies(eq(0)).context("should not report on empty left operand")?;
+    check!(empty_left)
+        .satisfies(eq(0))
+        .context("should not report on empty left operand")?;
 
     let empty_right = lint_count(
         "module T exposing (..)\n\nx = [ 1, 2, 3 ] ++ []",
         &rules::no_list_literal_concat::NoListLiteralConcat,
     );
-    check!(empty_right).satisfies(eq(0)).context("should not report on empty right operand")?;
+    check!(empty_right)
+        .satisfies(eq(0))
+        .context("should not report on empty right operand")?;
 
     let both_empty = lint_count(
         "module T exposing (..)\n\nx = [] ++ []",
         &rules::no_list_literal_concat::NoListLiteralConcat,
     );
-    check!(both_empty).satisfies(eq(0)).context("should not report when both sides are empty")?;
+    check!(both_empty)
+        .satisfies(eq(0))
+        .context("should not report when both sides are empty")?;
     Ok(())
 }
 
@@ -2108,8 +2115,10 @@ fn no_unsafe_ports_passes_incoming_safe() -> TestResult {
 #[test]
 fn no_inconsistent_aliases_flags_wrong_alias() -> TestResult {
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-    let config: toml::Value = toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).or_fail_with("toml parses")?;
-    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
+    let config: toml::Value =
+        toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).or_fail_with("toml parses")?;
+    rule.configure(&config)
+        .map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     let errors = lint_count(
         "module T exposing (..)\n\nimport Json.Decode as JD\n\nx = JD.string",
@@ -2122,8 +2131,10 @@ fn no_inconsistent_aliases_flags_wrong_alias() -> TestResult {
 #[test]
 fn no_inconsistent_aliases_passes_correct_alias() -> TestResult {
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-    let config: toml::Value = toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).or_fail_with("toml parses")?;
-    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
+    let config: toml::Value =
+        toml::from_str(r#"aliases = { "Json.Decode" = "Decode" }"#).or_fail_with("toml parses")?;
+    rule.configure(&config)
+        .map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     let errors = lint_count(
         "module T exposing (..)\n\nimport Json.Decode as Decode\n\nx = Decode.string",
@@ -2137,9 +2148,10 @@ fn no_inconsistent_aliases_passes_correct_alias() -> TestResult {
 fn no_inconsistent_aliases_passes_default_alias_match() -> TestResult {
     // If the canonical alias matches the default (last segment), no alias needed.
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-    let config: toml::Value =
-        toml::from_str(r#"aliases = { "Html.Attributes" = "Attributes" }"#).or_fail_with("toml parses")?;
-    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
+    let config: toml::Value = toml::from_str(r#"aliases = { "Html.Attributes" = "Attributes" }"#)
+        .or_fail_with("toml parses")?;
+    rule.configure(&config)
+        .map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     let errors = lint_count(
         "module T exposing (..)\n\nimport Html.Attributes\n\nx = Attributes.class \"foo\"",
@@ -2153,9 +2165,10 @@ fn no_inconsistent_aliases_passes_default_alias_match() -> TestResult {
 fn no_inconsistent_aliases_flags_missing_alias() -> TestResult {
     // Default alias "Attributes" doesn't match canonical "Attr".
     let mut rule = rules::no_inconsistent_aliases::NoInconsistentAliases::default();
-    let config: toml::Value =
-        toml::from_str(r#"aliases = { "Html.Attributes" = "Attr" }"#).or_fail_with("toml parses")?;
-    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
+    let config: toml::Value = toml::from_str(r#"aliases = { "Html.Attributes" = "Attr" }"#)
+        .or_fail_with("toml parses")?;
+    rule.configure(&config)
+        .map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     let errors = lint_count(
         "module T exposing (..)\n\nimport Html.Attributes\n\nx = Attributes.class \"foo\"",
@@ -2183,7 +2196,8 @@ fn no_max_line_length_respects_config() -> TestResult {
     use elm_lint::rule::Rule;
     let mut rule = rules::no_max_line_length::NoMaxLineLength::default();
     let config: toml::Value = toml::from_str("max_length = 50").or_fail_with("toml parses")?;
-    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
+    rule.configure(&config)
+        .map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     // A 60-char line should fail with max_length=50 but pass with default 120.
     let line = format!("x = \"{}\"", "a".repeat(52));
@@ -2200,7 +2214,8 @@ fn cognitive_complexity_respects_config() -> TestResult {
     use elm_lint::rule::Rule;
     let mut rule = rules::cognitive_complexity::CognitiveComplexity::default();
     let config: toml::Value = toml::from_str("threshold = 1").or_fail_with("toml parses")?;
-    rule.configure(&config).map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
+    rule.configure(&config)
+        .map_err(|e| TestError::new(ErrorKind::Assertion).with_message(e))?;
 
     // Two if/else branches: complexity = 1 + 1 = 2, exceeds threshold=1.
     let errors = lint_count(

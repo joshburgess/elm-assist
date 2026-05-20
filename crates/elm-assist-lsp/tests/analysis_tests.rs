@@ -52,10 +52,12 @@ fn lint_detects_unused_import() -> TestResult {
     let errors = analysis::lint_document(&state, &uri);
 
     let has_unused_import = errors.iter().any(|e| e.rule == "NoUnusedImports");
-    check!(has_unused_import).satisfies(is_true()).context(format!(
-        "expected NoUnusedImports to fire, got: {:?}",
-        errors.iter().map(|e| e.rule).collect::<Vec<_>>()
-    ))?;
+    check!(has_unused_import)
+        .satisfies(is_true())
+        .context(format!(
+            "expected NoUnusedImports to fire, got: {:?}",
+            errors.iter().map(|e| e.rule).collect::<Vec<_>>()
+        ))?;
     Ok(())
 }
 
@@ -94,13 +96,15 @@ fn lint_clean_file_has_no_errors() -> TestResult {
         })
         .collect();
 
-    check!(non_project_errors.is_empty()).satisfies(is_true()).context(format!(
-        "expected no non-project errors, got: {:?}",
-        non_project_errors
-            .iter()
-            .map(|e| (e.rule, &e.message))
-            .collect::<Vec<_>>()
-    ))?;
+    check!(non_project_errors.is_empty())
+        .satisfies(is_true())
+        .context(format!(
+            "expected no non-project errors, got: {:?}",
+            non_project_errors
+                .iter()
+                .map(|e| (e.rule, &e.message))
+                .collect::<Vec<_>>()
+        ))?;
     Ok(())
 }
 
@@ -121,7 +125,10 @@ fn unparseable_file_has_parse_errors() -> TestResult {
     let source = "this is not valid elm at all {{{";
     let (state, uri) = make_state_with_source(source)?;
 
-    let doc = state.documents.get(&uri).or_fail_with("document in state")?;
+    let doc = state
+        .documents
+        .get(&uri)
+        .or_fail_with("document in state")?;
     check!(!doc.parse_errors.is_empty())
         .satisfies(is_true())
         .context("expected parse errors for invalid source")?;
@@ -134,7 +141,10 @@ fn parse_recovering_provides_partial_ast() -> TestResult {
     let source = "module Test exposing (x)\n\n\nx =\n    1\n\n\ny = {{{ invalid\n";
     let (state, uri) = make_state_with_source(source)?;
 
-    let doc = state.documents.get(&uri).or_fail_with("document in state")?;
+    let doc = state
+        .documents
+        .get(&uri)
+        .or_fail_with("document in state")?;
 
     // Should have a partial AST (the valid declaration parsed).
     check!(doc.module.is_some())

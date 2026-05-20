@@ -23,8 +23,7 @@ type Messages = Arc<Mutex<Vec<serde_json::Value>>>;
 
 /// Create an LspService, spawn a socket drainer, drive the initialize
 /// handshake, and return everything ready for use.
-async fn init_service()
--> Result<(LspService<Backend>, Messages, InitializeResult), TestError> {
+async fn init_service() -> Result<(LspService<Backend>, Messages, InitializeResult), TestError> {
     let (mut service, socket) = LspService::new(Backend::new);
 
     // Split the socket: read server-to-client messages from the stream,
@@ -52,15 +51,16 @@ async fn init_service()
     });
 
     let init_params = InitializeParams {
-        root_uri: Some(
-            Url::parse("file:///tmp/test-project").or_fail_with("parse project URI")?,
-        ),
+        root_uri: Some(Url::parse("file:///tmp/test-project").or_fail_with("parse project URI")?),
         capabilities: ClientCapabilities::default(),
         ..Default::default()
     };
 
     let req = Request::build("initialize")
-        .params(serde_json::to_value(init_params).map_err(|e| fail(format!("serialize init params: {e}")))?)
+        .params(
+            serde_json::to_value(init_params)
+                .map_err(|e| fail(format!("serialize init params: {e}")))?,
+        )
         .id(1)
         .finish();
 
@@ -184,9 +184,8 @@ async fn initialize_returns_capabilities() -> TestResult {
     check!(result.capabilities.text_document_sync).satisfies(eq(Some(
         TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL),
     )))?;
-    check!(result.capabilities.code_action_provider).satisfies(eq(Some(
-        CodeActionProviderCapability::Simple(true),
-    )))?;
+    check!(result.capabilities.code_action_provider)
+        .satisfies(eq(Some(CodeActionProviderCapability::Simple(true))))?;
     check!(result.capabilities.hover_provider)
         .satisfies(eq(Some(HoverProviderCapability::Simple(true))))?;
 
@@ -203,8 +202,7 @@ async fn initialize_returns_capabilities() -> TestResult {
 async fn did_open_publishes_diagnostics() -> TestResult {
     let (mut service, messages, _) = init_service().await?;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
-        .or_fail_with("parse URI")?;
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").or_fail_with("parse URI")?;
     let source = "module Test exposing (..)\n\nimport Html\n\nx = 1\n";
 
     clear_messages(&messages).await;
@@ -231,8 +229,7 @@ async fn did_open_publishes_diagnostics() -> TestResult {
 async fn did_change_updates_diagnostics() -> TestResult {
     let (mut service, messages, _) = init_service().await?;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
-        .or_fail_with("parse URI")?;
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").or_fail_with("parse URI")?;
 
     // Open with an unused import.
     did_open(
@@ -274,8 +271,7 @@ async fn did_change_updates_diagnostics() -> TestResult {
 async fn did_close_clears_diagnostics() -> TestResult {
     let (mut service, messages, _) = init_service().await?;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
-        .or_fail_with("parse URI")?;
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").or_fail_with("parse URI")?;
 
     did_open(
         &mut service,
@@ -313,8 +309,7 @@ async fn did_close_clears_diagnostics() -> TestResult {
 async fn hover_on_diagnostic_returns_rule_info() -> TestResult {
     let (mut service, _messages, _) = init_service().await?;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
-        .or_fail_with("parse URI")?;
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").or_fail_with("parse URI")?;
     let source = "module Test exposing (..)\n\nx = Debug.log \"hi\" 1\n";
 
     did_open(&mut service, &uri, source).await?;
@@ -340,21 +335,26 @@ async fn hover_on_diagnostic_returns_rule_info() -> TestResult {
         .id(10)
         .finish();
 
-    let resp = service.call(req).await.map_err(|e| fail(format!("call failed: {e}")))?;
+    let resp = service
+        .call(req)
+        .await
+        .map_err(|e| fail(format!("call failed: {e}")))?;
     let result = response_result(resp)?;
 
     check!(!result.is_null())
         .satisfies(is_true())
         .context("hover should return a result")?;
 
-    let hover: Hover = serde_json::from_value(result)
-        .map_err(|e| fail(format!("valid Hover: {e}")))?;
+    let hover: Hover =
+        serde_json::from_value(result).map_err(|e| fail(format!("valid Hover: {e}")))?;
     match hover.contents {
         HoverContents::Markup(markup) => {
-            check!(markup.value.as_str()).satisfies(contains_str("NoDebug")).context(format!(
-                "hover should mention rule name, got: {}",
-                markup.value
-            ))?;
+            check!(markup.value.as_str())
+                .satisfies(contains_str("NoDebug"))
+                .context(format!(
+                    "hover should mention rule name, got: {}",
+                    markup.value
+                ))?;
         }
         other => return Err(fail(format!("expected Markup hover, got: {other:?}"))),
     }
@@ -367,8 +367,7 @@ async fn hover_on_diagnostic_returns_rule_info() -> TestResult {
 async fn hover_outside_diagnostic_returns_null() -> TestResult {
     let (mut service, _, _) = init_service().await?;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
-        .or_fail_with("parse URI")?;
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").or_fail_with("parse URI")?;
     let source = "module Test exposing (x)\n\n\n{-| A value. -}\nx : Int\nx =\n    1\n";
 
     did_open(&mut service, &uri, source).await?;
@@ -394,7 +393,10 @@ async fn hover_outside_diagnostic_returns_null() -> TestResult {
         .id(11)
         .finish();
 
-    let resp = service.call(req).await.map_err(|e| fail(format!("call failed: {e}")))?;
+    let resp = service
+        .call(req)
+        .await
+        .map_err(|e| fail(format!("call failed: {e}")))?;
     let result = response_result(resp)?;
     check!(result.is_null())
         .satisfies(is_true())
@@ -408,8 +410,7 @@ async fn hover_outside_diagnostic_returns_null() -> TestResult {
 async fn code_action_returns_fix() -> TestResult {
     let (mut service, messages, _) = init_service().await?;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
-        .or_fail_with("parse URI")?;
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").or_fail_with("parse URI")?;
     // NoUnusedImports has a fix (removing the import line).
     let source = "module Test exposing (..)\n\nimport Html\n\nx = 1\n";
 
@@ -422,10 +423,12 @@ async fn code_action_returns_fix() -> TestResult {
         .find(|d| d.code == Some(NumberOrString::String("NoUnusedImports".into())))
         .cloned();
 
-    check!(target_diag.is_some()).satisfies(is_true()).context(format!(
-        "expected NoUnusedImports diagnostic, got: {:?}",
-        all_diags.iter().map(|d| &d.code).collect::<Vec<_>>()
-    ))?;
+    check!(target_diag.is_some())
+        .satisfies(is_true())
+        .context(format!(
+            "expected NoUnusedImports diagnostic, got: {:?}",
+            all_diags.iter().map(|d| &d.code).collect::<Vec<_>>()
+        ))?;
 
     if let Some(diag) = &target_diag {
         let params = CodeActionParams {
@@ -448,16 +451,20 @@ async fn code_action_returns_fix() -> TestResult {
             .id(20)
             .finish();
 
-        let resp = service.call(req).await.map_err(|e| fail(format!("call failed: {e}")))?;
+        let resp = service
+            .call(req)
+            .await
+            .map_err(|e| fail(format!("call failed: {e}")))?;
         let result = response_result(resp)?;
 
-        check!(!result.is_null()).satisfies(is_true()).context(format!(
-            "should return code actions for range {:?}, diag code: {:?}",
-            diag.range,
-            diag.code
-        ))?;
-        let actions: Vec<CodeActionOrCommand> = serde_json::from_value(result)
-            .map_err(|e| fail(format!("valid code actions: {e}")))?;
+        check!(!result.is_null())
+            .satisfies(is_true())
+            .context(format!(
+                "should return code actions for range {:?}, diag code: {:?}",
+                diag.range, diag.code
+            ))?;
+        let actions: Vec<CodeActionOrCommand> =
+            serde_json::from_value(result).map_err(|e| fail(format!("valid code actions: {e}")))?;
         check!(!actions.is_empty())
             .satisfies(is_true())
             .context("should have at least one code action")?;
@@ -482,8 +489,7 @@ async fn code_action_returns_fix() -> TestResult {
 async fn code_action_on_clean_range_returns_none() -> TestResult {
     let (mut service, _, _) = init_service().await?;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
-        .or_fail_with("parse URI")?;
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").or_fail_with("parse URI")?;
     let source = "module Test exposing (x)\n\n\n{-| A value. -}\nx : Int\nx =\n    1\n";
 
     did_open(&mut service, &uri, source).await?;
@@ -518,7 +524,10 @@ async fn code_action_on_clean_range_returns_none() -> TestResult {
         .id(21)
         .finish();
 
-    let resp = service.call(req).await.map_err(|e| fail(format!("call failed: {e}")))?;
+    let resp = service
+        .call(req)
+        .await
+        .map_err(|e| fail(format!("call failed: {e}")))?;
     let result = response_result(resp)?;
     check!(result.is_null())
         .satisfies(is_true())
@@ -532,8 +541,7 @@ async fn code_action_on_clean_range_returns_none() -> TestResult {
 async fn parse_error_shows_as_diagnostic() -> TestResult {
     let (mut service, messages, _) = init_service().await?;
 
-    let uri = Url::parse("file:///tmp/test-project/src/Test.elm")
-        .or_fail_with("parse URI")?;
+    let uri = Url::parse("file:///tmp/test-project/src/Test.elm").or_fail_with("parse URI")?;
     let source = "module Test exposing (..)\n\nx = {{{ invalid\n";
 
     clear_messages(&messages).await;
@@ -566,7 +574,10 @@ async fn shutdown_succeeds() -> TestResult {
     let (mut service, _, _) = init_service().await?;
 
     let req = Request::build("shutdown").id(99).finish();
-    let resp = service.call(req).await.map_err(|e| fail(format!("call failed: {e}")))?;
+    let resp = service
+        .call(req)
+        .await
+        .map_err(|e| fail(format!("call failed: {e}")))?;
     let result = response_result(resp)?;
     check!(result.is_null())
         .satisfies(is_true())

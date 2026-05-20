@@ -190,7 +190,9 @@ fn fix_to_code_action_creates_quickfix() -> TestResult {
 
     let edit = action.edit.ok_or_else(|| fail("expected edit"))?;
     let changes = edit.changes.ok_or_else(|| fail("expected changes"))?;
-    let edits = changes.get(&uri).ok_or_else(|| fail("expected edits for uri"))?;
+    let edits = changes
+        .get(&uri)
+        .ok_or_else(|| fail("expected edits for uri"))?;
     check!(edits.len()).satisfies(eq(1))?;
     check!(edits[0].new_text.as_str()).satisfies(eq("replacement"))?;
     Ok(())
@@ -224,7 +226,9 @@ fn fix_with_multiple_edits() -> TestResult {
         .ok_or_else(|| fail("expected edit"))?
         .changes
         .ok_or_else(|| fail("expected changes"))?;
-    let edits = changes.get(&uri).ok_or_else(|| fail("expected edits for uri"))?;
+    let edits = changes
+        .get(&uri)
+        .ok_or_else(|| fail("expected edits for uri"))?;
     check!(edits.len()).satisfies(eq(2))?;
     Ok(())
 }

@@ -25,7 +25,8 @@ fn fail(msg: impl Into<String>) -> TestError {
 
 fn render_screen(state: &AppState) -> TestResult {
     let backend = TestBackend::new(120, 40);
-    let mut terminal = Terminal::new(backend).map_err(|e| fail(format!("TestBackend should construct: {e}")))?;
+    let mut terminal =
+        Terminal::new(backend).map_err(|e| fail(format!("TestBackend should construct: {e}")))?;
     terminal
         .draw(|frame| view::render(state, frame))
         .map_err(|e| fail(format!("render should not error: {e}")))?;
@@ -37,12 +38,10 @@ fn render_screen(state: &AppState) -> TestResult {
         .content
         .iter()
         .any(|cell| !cell.symbol().trim().is_empty());
-    check!(any_nonempty)
-        .satisfies(is_true())
-        .context(format!(
-            "view::render produced an empty buffer for {:?}",
-            state.screen
-        ))?;
+    check!(any_nonempty).satisfies(is_true()).context(format!(
+        "view::render produced an empty buffer for {:?}",
+        state.screen
+    ))?;
     Ok(())
 }
 

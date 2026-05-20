@@ -360,7 +360,10 @@ mod tests {
             "exposed-modules": ["Json.Decode", "Json.Encode"]
         }"#;
         let modules = parse_exposed_modules(json).or_fail_with("exposed-modules parses")?;
-        check!(modules).satisfies(eq(vec!["Json.Decode".to_string(), "Json.Encode".to_string()]))?;
+        check!(modules).satisfies(eq(vec![
+            "Json.Decode".to_string(),
+            "Json.Encode".to_string(),
+        ]))?;
         Ok(())
     }
 
